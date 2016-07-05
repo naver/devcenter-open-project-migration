@@ -4,6 +4,10 @@ boards/
 venv/
 xml_output/
 logs/
+config.py
+config.py.*
+*.zip
+*.txt
 
 # Github provided
 # Byte-compiled / optimized / DLL files

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import xml.etree.ElementTree as ET
 import requests
 import codecs
@@ -10,8 +10,10 @@ from enum import Enum, unique
 from config import *
 import time
 import io
+import zipfile
+import io
 
-logging.basicConfig(filename='logs/' + time.strftime("%Y-%m-%d %H:%M:%S")+'.log',level=logging.INFO)
+logging.basicConfig(filename='logs/' + time.strftime("%Y-%m-%d %H:%M:%S")+'.log',level=logging.DEBUG if DEBUG else logging.INFO)
 
 @unique
 class Parse_type(Enum):
@@ -88,6 +90,31 @@ class TestGetTagFunc(unittest.TestCase):
      11 view_hit
      12 attachments
      13 comments
+
+     이슈 및 게시판 첨부파일 구조
+     <attachments>
+       <item>
+         <id>64095</id>
+         <name>스크린샷 2015-11-03 오후 6.51.56.png</name>
+         <link>/projects/d2coding/issue/99897/64095/스크린샷 2015-11-03 오후 6.51.56.png</link>
+       </item>
+     </attachments>
+
+     댓글 첨부파일 구조
+     <item>
+         <attachment_id>1</attachment_id>
+         <id>63291</id>
+         <link>/projects/d2coding/forum/98501/63291/d2c_vs2015.png</link>
+     </item>
+    릴리즈 첨부파일 구조
+   <files>
+     <file>
+       <id>11300</id>
+       <name>D2Coding-Ver1.0-TTC-20150911.zip</name>
+       <release_date>1441965194</release_date>
+       <download_count>12922</download_count>
+       <link>/projects/d2coding/files/11300</link>
+   </file>
  '''
 
 def get_tag(parse_type, tag_type):
@@ -98,11 +125,27 @@ def get_tag(parse_type, tag_type):
     author_tag_list = ['author', 'author', 'released_by', 'author']
     assignee_tag_list = ['assignee', 'assignee', None, None]
     title_tag_list = ['title', 'title','name', None]
+    #attachments_tag_list = ['attachments', 'attachments', None, 'files']
+    #each_file_tag_list = ['item', 'item', 'file', 'item']
 
     tag_lists = [id_tag_list, date_tag_list, body_tag_list,
                  author_tag_list, assignee_tag_list, title_tag_list]
 
     return tag_lists[tag_type.value][parse_type.value]
+
+# 요청 보낸 URL 를 출력하는 함수
+def print_url(r, *args, **kwargs):
+    print(r.url)
+
+# Version name 을 어떻게든 얻어보고자 고군분투하는 함수
+def get_version(title, project_name):
+    temp = str.upper(title).replace(str.upper(project_name),'')
+    try:
+        result = int(temp)
+        if result < 0:
+            return abs(result)
+    except:
+        return temp.replace(' ','')
 
 def create_issue(project_name, parse_type):
     url = "http://staging.dev.naver.com/projects/" + project_name + '/'
@@ -124,9 +167,9 @@ def create_issue(project_name, parse_type):
     parsed_xml = r.text.replace('&nbsp;',' ')
 
     parser = ET.XMLParser(encoding=ENCODING)
-    root = ET.fromstring(parsed_xml, parser=parser)
+    main_root = ET.fromstring(parsed_xml, parser=parser)
 
-    for article in root:
+    for article in main_root:
         assert article.find(id_tag) is not None,"Wrong Parse_type type: %r" % parse_type
 
         article_id = article.find(id_tag).text
@@ -136,8 +179,10 @@ def create_issue(project_name, parse_type):
                              hooks=dict(response=print_url))
         r.encoding = ENCODING
 
-        # API가 XML 을 못 받아오는 버그로 추정하고 있음
-        # https://oss.navercorp.com/communication-service/open-project-migration/issues/2#issuecomment-538527
+        """
+        API가 XML 을 못 받아오는 버그로 추정하고 있음
+        https://oss.navercorp.com/communication-service/open-project-migration/issues/2#issuecomment-538527
+        """
         if len(r.text) == 0:
             logging.error("XML IS BLANK!!")
             continue
@@ -152,8 +197,8 @@ def create_issue(project_name, parse_type):
         try:
             article_root = ET.fromstring(parsed_xml)
         except ET.ParseError as e:
-            print(e)
-            print(parsed_xml)
+            logging.error(e)
+            logging.error(parsed_xml)
 
         # 댓글의 comment 배열을 만드는 과정
         comments = article_root.find('comments')
@@ -184,7 +229,7 @@ def create_issue(project_name, parse_type):
             logging.info(article_id + " article doesn't have comments")
 
         if len(comments_list) > 0 and DEBUG:
-            print(article_id , comments_list)
+            logging.debug(article_id , comments_list)
 
         author = article_root.find(get_tag(_parse_type, Tag_type._author)).text
 
@@ -222,40 +267,91 @@ def create_issue(project_name, parse_type):
             issue_title = title
 
         description = article_root.find(get_tag(_parse_type, Tag_type._body)).text
+        closed = 'download'
 
         if not _parse_type is Parse_type.download:
             close_date = article_root.find('close_date').text
             closed = False if close_date is '0' else True
 
-        # logging
-        logging.info('id:{0}, title:{1}, closed:{2}\nbody:\n{3}\ncomments:{4}'
-                     .format(article_id,issue_title,closed
-                             ,description,comments_list))
+        if _parse_type is Parse_type.download:
+            github_request_url = GITHUB_URL + 'releases'
+            version = str(get_version(title, project_name))
 
-        issue_json = json.dumps({"issue" : { "title" : issue_title,
-                                             "body" : description,
-                                             "closed" : closed
-                                            },
-                                 # 댓글 list 를 json 화 한다
-                                 "comments" : [
-                                    {
-                                        "created_at" :
-                                        time.strftime("%Y-%m-%dT%H:%M:%SZ",
-                                        time.localtime(int(comment['date']))),
-                                        "body" : comment['author'] + '\n' \
-                                        + comment['desc']
-                                    }
-                                 for comment in comments_list]})
+            github_request_data = json.dumps({
+                "tag_name": version,
+                "target_commitish" : "master",
+                "name" : title,
+                "body" : description,
+                "prerelease" : False,
+                "draft" : False
+            })
+
+            # logging
+            logging.info('id:{0}, tag_name:{1}, title:{2}, \nbody:\n{3}'
+                         .format(article_id,version,issue_title,description))
+        else:
+            github_request_url = GITHUB_URL + 'import/issues'
+            github_request_data = json.dumps({"issue" : { "title" : issue_title,
+                                                 "body" : description,
+                                                 "closed" : closed
+                                                },
+                                     # 댓글 list 를 json 화 한다
+                                     "comments" : [
+                                        {
+                                            "created_at" :
+                                            time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                            time.localtime(int(comment['date']))),
+                                            "body" : comment['author'] + '\n' \
+                                            + comment['desc']
+                                        }
+                                     for comment in comments_list]})
+
+            # logging
+            logging.info('id:{0}, title:{1}, closed:{2}\nbody:\n{3}\ncomments:{4}'
+                         .format(article_id,issue_title,closed
+                                 ,description,comments_list))
 
 
-        r = requests.request("POST", GITHUB_URL, data=issue_json,
+        r = requests.request("POST",github_request_url, data=github_request_data,
                              headers=HEADERS['GITHUB'],
-                             hooks=dict(response=print_url()))
+                             hooks=dict(response=print_url))
 
-        logging.info('RESULT OF MIGRATION: {0}'.format(r.text))
+        # 파일 업로드 부분
+        if _parse_type is Parse_type.download:
+            for item in article_root.find('files'):
+                file_id = item.find('id').text
+                file_name = item.find('name').text
+                file_down_url = \
+                'http://staging.dev.naver.com/frs/download.php/{0}/{1}'\
+                .format(
+                    file_id,file_name
+                )
 
-def print_url(r, *args, **kwargs):
-    print(r.url)
+                release_file = requests.request("GET",
+                                                file_down_url,
+                                                stream=True
+                                                )
+
+                upload_url = r.json()['upload_url'].replace('{?name,label}','') + '?name=' + file_name
+
+                headers = {
+                    'content-type': "application/zip",
+                    'authorization': "token eddd4749028de2cb5617a864c5a65669df29d6be",
+                    'cache-control': "no-cache",
+                }
+
+                files = {'file': (file_name, release_file.content, 'application/zip')}
+
+
+                file_send_request = requests.request("POST",
+                                                    upload_url,
+                                                    headers=headers,
+                                                    files=files
+                                                    )
+                logging.info('RESULT OF UPLOADING:\n{0}'.format(file_send_request.text))
+
+
+        logging.info('RESULT OF MIGRATION:\n{0}'.format(r.text))
 
 if __name__ == '__main__':
     if TEST:

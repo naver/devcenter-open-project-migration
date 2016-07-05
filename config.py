@@ -15,7 +15,7 @@ HEADERS = {
 
 ENCODING = 'utf-8'
 DEBUG = False
-XML_OUTPUT = True
+XML_OUTPUT = False
 TEST = False
 
-GITHUB_URL = "https://oss.navercorp.com/api/v3/repos/maxtortime/open-project-migration-test/import/issues"
+GITHUB_URL = "https://oss.navercorp.com/api/v3/repos/maxtortime/open-project-migration-test/"

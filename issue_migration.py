@@ -222,40 +222,82 @@ def create_issue(project_name, parse_type):
             issue_title = title
 
         description = article_root.find(get_tag(_parse_type, Tag_type._body)).text
+        closed = 'download'
 
         if not _parse_type is Parse_type.download:
             close_date = article_root.find('close_date').text
             closed = False if close_date is '0' else True
 
-        # logging
-        logging.info('id:{0}, title:{1}, closed:{2}\nbody:\n{3}\ncomments:{4}'
-                     .format(article_id,issue_title,closed
-                             ,description,comments_list))
+        if _parse_type is Parse_type.download:
+            github_request_url = GITHUB_URL + 'releases'
+            """
+            파일 올리는 부분은
+            https://developer.github.com/v3/repos/releases/#upload-a-release-asset
+            {
+              "tag_name": "v1.0.0",
+              "target_commitish": "master",
+              "name": "v1.0.0",
+              "body": "Description of the release",
+              "draft": false,
+              "prerelease": false
+            }
+            """
+            version = str(get_version(title, project_name))
 
-        issue_json = json.dumps({"issue" : { "title" : issue_title,
-                                             "body" : description,
-                                             "closed" : closed
-                                            },
-                                 # 댓글 list 를 json 화 한다
-                                 "comments" : [
-                                    {
-                                        "created_at" :
-                                        time.strftime("%Y-%m-%dT%H:%M:%SZ",
-                                        time.localtime(int(comment['date']))),
-                                        "body" : comment['author'] + '\n' \
-                                        + comment['desc']
-                                    }
-                                 for comment in comments_list]})
+            github_request_data = json.dumps({
+                "tag_name": version,
+                "target_commitish" : "master",
+                "name" : title,
+                "body" : description,
+                "prerelease" : False,
+                "draft" : False
+            })
+
+            # logging
+            logging.info('id:{0}, tag_name:{1}, title:{2}, \nbody:\n{3}'
+                         .format(article_id,version,issue_title,description))
+        else:
+            github_request_url = GITHUB_URL + 'import/issues'
+            github_request_data = json.dumps({"issue" : { "title" : issue_title,
+                                                 "body" : description,
+                                                 "closed" : closed
+                                                },
+                                     # 댓글 list 를 json 화 한다
+                                     "comments" : [
+                                        {
+                                            "created_at" :
+                                            time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                            time.localtime(int(comment['date']))),
+                                            "body" : comment['author'] + '\n' \
+                                            + comment['desc']
+                                        }
+                                     for comment in comments_list]})
+
+            # logging
+            logging.info('id:{0}, title:{1}, closed:{2}\nbody:\n{3}\ncomments:{4}'
+                         .format(article_id,issue_title,closed
+                                 ,description,comments_list))
 
 
-        r = requests.request("POST", GITHUB_URL, data=issue_json,
+        r = requests.request("POST",github_request_url, data=github_request_data,
                              headers=HEADERS['GITHUB'],
-                             hooks=dict(response=print_url()))
+                             hooks=dict(response=print_url))
 
-        logging.info('RESULT OF MIGRATION: {0}'.format(r.text))
+        logging.info('RESULT OF MIGRATION:\n{0}'.format(r.text))
 
+# 요청 보낸 URL 를 출력하는 함수
 def print_url(r, *args, **kwargs):
     print(r.url)
+
+# Version name 을 어떻게든 얻어보고자 고군분투하는 함수
+def get_version(title, project_name):
+    temp = str.upper(title).replace(str.upper(project_name),'')
+    try:
+        result = int(temp)
+        if result < 0:
+            return abs(result)
+    except:
+        return temp.replace(' ','')
 
 if __name__ == '__main__':
     if TEST:

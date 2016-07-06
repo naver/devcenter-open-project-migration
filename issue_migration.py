@@ -250,33 +250,26 @@ def create_issue(project_name, parse_type):
         author = author.replace(' ','')
         assignee = assignee.replace(' ','')
 
-        '''
-        Assignee 을 지정하려면 github repo 에 그 유저가 collaborator로 등록되어
-        있어야 하는데 현재 nFORGE API 상 repo의 멤버들을 얻어올 수 있는 수단이
-        없으므로 title 에 두 값을 붙여본다.
-        '''
-
-        assignee_str = "->" + assignee if _parse_type.name == 'issue' \
-                                        and assignee != 'Nobody' \
-                                        else ''
-        seperator = ''
-        if _parse_type is not Parse_type.download:
-            seperator = '[{0}]'.format(str.upper(_parse_type.name))
-
         title = article_root.find(get_tag(_parse_type, Tag_type._title)).text
-        author_assignee = "[" + author + assignee_str + "] "
 
         """
         Download 의 released_by 태그는 아이디를 알려주는데
         API 로 유저 이름을 얻는 것이 불가능함
         """
 
-        if _parse_type is not Parse_type.download:
-            issue_title = seperator + author_assignee + title
-        else:
-            issue_title = title
+        body = article_root.find(get_tag(_parse_type, Tag_type._body)).text
+        open_date_int = article_root.find(get_tag(_parse_type, Tag_type._date)).text
+        date_type = "%Y/%m/%d %H:%M:%S"
+        open_date = time.strftime(date_type, time.localtime(int(open_date_int)))
 
-        description = article_root.find(get_tag(_parse_type, Tag_type._body)).text
+        if not _parse_type is Parse_type.download:
+            if _parse_type is Parse_type.issue:
+                description = "This issue created by **{0}** and assigned to **{1}** | {2}\n\n------\n{3}".format(author,assignee,open_date,body)
+            elif _parse_type is Parse_type.forum:
+                description = "This forum created by **{0}** | {1}\n\n------\n{2}".format(author,open_date,body)
+        else:
+            description = body
+
         closed = 'download'
 
         if not _parse_type is Parse_type.download:
@@ -298,12 +291,15 @@ def create_issue(project_name, parse_type):
 
             # logging
             logging.info('id:{0}, tag_name:{1}, title:{2}, \nbody:\n{3}'
-                         .format(article_id,version,issue_title,description))
+                         .format(article_id,version,title,description))
         else:
             github_request_url = GITHUB_URL + 'import/issues'
-            github_request_data = json.dumps({"issue" : { "title" : issue_title,
+            github_request_data = json.dumps({"issue" : { "title" : title,
                                                  "body" : description,
-                                                 "closed" : closed
+                                                 "closed" : closed,
+                                                 "labels" : [
+                                                    _parse_type.name
+                                                 ]
                                                 },
                                      # 댓글 list 를 json 화 한다
                                      "comments" : [
@@ -311,15 +307,17 @@ def create_issue(project_name, parse_type):
                                             "created_at" :
                                             time.strftime("%Y-%m-%dT%H:%M:%SZ",
                                             time.localtime(int(comment['date']))),
-                                            "body" : comment['author'] + '\n' \
-                                            + comment['desc']
+                                            "body" : 'This comment created by **{0}** | {1}\n\n------\n{2}'.format
+                                            (
+                                                comment['author'],
+                                                time.strftime(date_type,time.localtime(int(comment['date']))),
+                                                comment['desc'])
                                         }
                                      for comment in comments_list]})
 
             # logging
             logging.info('id:{0}, title:{1}, closed:{2}\nbody:\n{3}\ncomments:{4}'
-                         .format(article_id,issue_title,closed
-                                 ,description,comments_list))
+                         .format(article_id,title,closed,description,comments_list))
 
         # Requsting for MIGRATION
         migration_request = requests.request("POST",github_request_url,
@@ -340,7 +338,7 @@ def create_issue(project_name, parse_type):
                 .format(
                     file_id,file_name
                 )
-
+                # 파일을 다운로드 함
                 release_file = requests.request("GET",
                                                 file_down_url,
                                                 stream=True
@@ -348,7 +346,6 @@ def create_issue(project_name, parse_type):
 
                 with open(file_name,'wb') as f:
                     f.write(release_file.content)
-
 
                 logging.info('RESULT OF RELEASE FILE DOWNLOADING:\n{0}'.format(release_file.raw.read(10)))
 
@@ -358,11 +355,6 @@ def create_issue(project_name, parse_type):
                     'cache-control': "no-cache",
                 }
 
-                """
-                그냥 github 로 시도시 죽음
-                enterprise 는 잘 돌아감..
-
-                """
                 release = gh.repository('maxtortime','open-project-migration-test').release(id=migration_request.json()['id'])
 
                 release.upload_asset('application/zip',file_name,release_file.content)

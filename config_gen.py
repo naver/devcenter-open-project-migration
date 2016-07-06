@@ -28,6 +28,7 @@ access_token = auth.token
 with open('config.py','w') as f:
     try:
         f.write("XML_EXTENSION = '.xml'\n")
+        f.write("ACCESS_TOKEN = '{0}'\n".format(access_token))
         f.write("HEADERS = " + json.dumps({
             'NAVER' : {
                 'cache-control': 'no-cache'

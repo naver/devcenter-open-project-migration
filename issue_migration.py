@@ -10,10 +10,20 @@ from enum import Enum, unique
 from config import *
 import time
 import io
-import zipfile
-import io
 
-logging.basicConfig(filename='logs/' + time.strftime("%Y-%m-%d %H:%M:%S")+'.log',level=logging.DEBUG if DEBUG else logging.INFO)
+from github3 import login
+from github3.repos.release import Release
+
+if DEBUG:
+# Request Warning 출력 안하게
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+    logging.basicConfig(filename='logs/' + time.strftime("%Y-%m-%d %H:%M:%S")+'.log',level=logging.DEBUG)
+else:
+    logging.basicConfig(filename='logs/' + time.strftime("%Y-%m-%d %H:%M:%S")+'.log',level=logging.INFO)
+
+gh = login(token=ACCESS_TOKEN)
 
 @unique
 class Parse_type(Enum):
@@ -39,7 +49,7 @@ class TestGetTagFunc(unittest.TestCase):
     # released_by 는 아이디임
     author_tag_list = ['author', 'author', 'released_by','author']
     assignee_tag_list = ['assignee', 'assignee', None, None]
-    title_tag_list = ['title', 'title','title', None]
+    title_tag_list = ['title', 'title','name', None]
     tag_lists = [id_tag_list, date_tag_list, body_tag_list,
                  author_tag_list, assignee_tag_list, title_tag_list]
 
@@ -311,10 +321,14 @@ def create_issue(project_name, parse_type):
                          .format(article_id,issue_title,closed
                                  ,description,comments_list))
 
-
-        r = requests.request("POST",github_request_url, data=github_request_data,
+        # Requsting for MIGRATION
+        migration_request = requests.request("POST",github_request_url,
+                             data=github_request_data,
                              headers=HEADERS['GITHUB'],
-                             hooks=dict(response=print_url))
+                             hooks=dict(response=print_url)
+                             )
+
+        logging.info('RESULT OF ARTICLE MIGRATION:\n{0}'.format(migration_request.text))
 
         # 파일 업로드 부분
         if _parse_type is Parse_type.download:
@@ -332,7 +346,11 @@ def create_issue(project_name, parse_type):
                                                 stream=True
                                                 )
 
-                upload_url = r.json()['upload_url'].replace('{?name,label}','') + '?name=' + file_name
+                with open(file_name,'wb') as f:
+                    f.write(release_file.content)
+
+
+                logging.info('RESULT OF RELEASE FILE DOWNLOADING:\n{0}'.format(release_file.raw.read(10)))
 
                 headers = {
                     'content-type': "application/zip",
@@ -340,15 +358,15 @@ def create_issue(project_name, parse_type):
                     'cache-control': "no-cache",
                 }
 
-                files = {'file': (file_name, release_file.content, 'application/zip')}
+                """
+                그냥 github 로 시도시 죽음
+                enterprise 는 잘 돌아감..
 
+                """
+                release = gh.repository('maxtortime','open-project-migration-test').release(id=migration_request.json()['id'])
 
-                file_send_request = requests.request("POST",
-                                                    upload_url,
-                                                    headers=headers,
-                                                    files=files
-                                                    )
-                logging.info('RESULT OF UPLOADING:\n{0}'.format(file_send_request.text))
+                release.upload_asset('application/zip',file_name,release_file.content)
+                logging.info('RESULT OF UPLOADING:\n{0}'.format(release.__dict__))
 
 
         logging.info('RESULT OF MIGRATION:\n{0}'.format(r.text))

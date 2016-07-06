@@ -9,6 +9,7 @@ config.py.*
 *.zip
 *.txt
 output/
+wiki_repos/
 
 # Github provided
 # Byte-compiled / optimized / DLL files

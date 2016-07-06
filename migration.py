@@ -129,6 +129,17 @@ class TestGetTagFunc(unittest.TestCase):
    </file>
  '''
 
+def file_download(url,name):
+    downloaded = requests.request("GET",url,stream=True)
+
+    if XML_OUTPUT:
+        with open('output/'+name,'wb') as f:
+            f.write(downloaded.content)
+
+    logging.info('RESULT OF RELEASE FILE DOWNLOADING:\n{0}'.format(downloaded.raw.read(10)))
+
+    return downloaded
+
 def get_tag(parse_type, tag_type):
     id_tag_list = ['artifact_id', 'artifact_id', 'release_id','id']
     date_tag_list = ['open_date', 'open_date', 'release_date','pubDate']
@@ -137,8 +148,6 @@ def get_tag(parse_type, tag_type):
     author_tag_list = ['author', 'author', 'released_by', 'author']
     assignee_tag_list = ['assignee', 'assignee', None, None]
     title_tag_list = ['title', 'title','name', None]
-    #attachments_tag_list = ['attachments', 'attachments', None, 'files']
-    #each_file_tag_list = ['item', 'item', 'file', 'item']
 
     tag_lists = [id_tag_list, date_tag_list, body_tag_list,
                  author_tag_list, assignee_tag_list, title_tag_list]
@@ -161,18 +170,18 @@ def get_version(title, project_name):
 
 def create_issue(project_name, parse_type):
     url = "http://staging.dev.naver.com/projects/" + project_name + '/'
-    file_name = parse_type + XML_EXTENSION
+    xml_file_name = parse_type + XML_EXTENSION
 
     _parse_type = Parse_type[parse_type] # enum 클래스에서 string 값을 찾음
 
     id_tag = get_tag(_parse_type, Tag_type._id)
 
-    r = requests.request("GET", url + file_name, headers=HEADERS['NAVER'],
+    r = requests.request("GET", url + xml_file_name, headers=HEADERS['NAVER'],
                          hooks=dict(response=print_url))
     r.encoding = ENCODING
 
     if XML_OUTPUT:
-        with open('xml_output/' + project_name + '_' + file_name, 'w') as f:
+        with open('xml_output/' + project_name + '_' + xml_file_name, 'w') as f:
             f.write(r.text)
 
     # XML 파서가 nbsp 를 잘 파싱하지 못할 때가 있음
@@ -204,7 +213,7 @@ def create_issue(project_name, parse_type):
 
         if XML_OUTPUT:
             with open('xml_output/' + project_name + '_' + article_id
-                      + '_' + file_name, 'w') as f:
+                      + '_' + xml_file_name, 'w') as f:
                 f.write(parsed_xml)
         try:
             article_root = ET.fromstring(parsed_xml)
@@ -235,6 +244,7 @@ def create_issue(project_name, parse_type):
                         'date' : date_tag.text,
                         'desc' : body_tag.text,
                         'author' : author_tag.text
+                        #'link' : comment.find('link').text
                     }
                 )
         else:
@@ -295,27 +305,50 @@ def create_issue(project_name, parse_type):
             logging.info('id:{0}, tag_name:{1}, title:{2}, \nbody:\n{3}'
                          .format(article_id,version,title,description))
         else:
+            attachments = article_root.find('attachments').findall('item')
+
+            for item in attachments:
+                # 첨부파일 다운로드
+                attach_file_link = item.find('link').text
+                attach_file_name = item.find('name').text
+                file_download("http://staging.dev.naver.com"+attach_file_link, attach_file_name)
+
             github_request_url = GITHUB_URL + 'import/issues'
-            github_request_data = json.dumps({"issue" : { "title" : title,
-                                                 "body" : description,
-                                                 "closed" : closed,
-                                                 "labels" : [
-                                                    _parse_type.name
-                                                 ]
-                                                },
-                                     # 댓글 list 를 json 화 한다
-                                     "comments" : [
-                                        {
-                                            "created_at" :
-                                            time.strftime("%Y-%m-%dT%H:%M:%SZ",
-                                            time.localtime(int(comment['date']))),
-                                            "body" : 'This comment created by **{0}** | {1}\n\n------\n{2}'.format
-                                            (
-                                                comment['author'],
-                                                time.strftime(date_type,time.localtime(int(comment['date']))),
-                                                comment['desc'])
-                                        }
-                                     for comment in comments_list]})
+            github_request_data = ''
+            processed_comment_list = []
+
+            for comment in comments_list:
+                comment_time = time.localtime(int(comment['date']))
+                comment_time_type = "%Y-%m-%dT%H:%M:%SZ"
+                c_author = comment['author']
+                c_date = time.strftime(date_type, comment_time)
+                c_desc = comment['desc']
+
+                c_date = time.strftime(comment_time_type, comment_time)
+                c_body = "This comment created by **{0}** | {1}\n\n------\n{2}".format(c_author,c_date,c_desc)
+
+                #file_download("http://staging.dev.naver.com" + )
+
+                processed_comment_list.append({
+                    "created_at" : c_date,
+                    "body" : c_body
+                })
+
+            github_request_data = json.dumps(
+                {
+                    "issue" :
+                    {
+                        "title" : title,
+                        "body" : description,
+                        "closed" : closed,
+                        "labels" :
+                        [
+                            _parse_type.name
+                        ]
+                    },
+                    # 댓글 list 를 json 화 한다
+                     "comments" : processed_comment_list
+                 })
 
             # logging
             logging.info('id:{0}, title:{1}, closed:{2}\nbody:\n{3}\ncomments:{4}'
@@ -326,7 +359,6 @@ def create_issue(project_name, parse_type):
                              data=github_request_data,
                              headers=HEADERS['GITHUB']
                              )
-
 
         logging.info('RESULT OF ARTICLE MIGRATION:\n{0}'.format(migration_request.text))
 
@@ -341,15 +373,7 @@ def create_issue(project_name, parse_type):
                     file_id,file_name
                 )
                 # 파일을 다운로드 함
-                release_file = requests.request("GET",
-                                                file_down_url,
-                                                stream=True
-                                                )
-
-                with open('output/'+file_name,'wb') as f:
-                    f.write(release_file.content)
-
-                logging.info('RESULT OF RELEASE FILE DOWNLOADING:\n{0}'.format(release_file.raw.read(10)))
+                release_file = file_download(file_down_url, file_name)
 
                 headers = {
                     'content-type': "application/zip",
@@ -358,10 +382,9 @@ def create_issue(project_name, parse_type):
                 }
 
                 release = gh.repository('maxtortime','open-project-migration-test').release(id=migration_request.json()['id'])
-
                 release.upload_asset('application/zip',file_name,release_file.content)
-                logging.info('RESULT OF UPLOADING:\n{0}'.format(release.__dict__))
 
+                logging.info('RESULT OF UPLOADING:\n{0}'.format(release.__dict__))
 
         logging.info('RESULT OF MIGRATION:\n{0}'.format(r.text))
 

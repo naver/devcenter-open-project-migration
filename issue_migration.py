@@ -14,6 +14,8 @@ import io
 from github3 import login
 from github3.repos.release import Release
 
+from tqdm import tqdm
+
 if DEBUG:
 # Request Warning 출력 안하게
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -145,7 +147,7 @@ def get_tag(parse_type, tag_type):
 
 # 요청 보낸 URL 를 출력하는 함수
 def print_url(r, *args, **kwargs):
-    print(r.url)
+    print("URL: " + r.url)
 
 # Version name 을 어떻게든 얻어보고자 고군분투하는 함수
 def get_version(title, project_name):
@@ -179,7 +181,7 @@ def create_issue(project_name, parse_type):
     parser = ET.XMLParser(encoding=ENCODING)
     main_root = ET.fromstring(parsed_xml, parser=parser)
 
-    for article in main_root:
+    for article in tqdm(main_root):
         assert article.find(id_tag) is not None,"Wrong Parse_type type: %r" % parse_type
 
         article_id = article.find(id_tag).text
@@ -322,9 +324,9 @@ def create_issue(project_name, parse_type):
         # Requsting for MIGRATION
         migration_request = requests.request("POST",github_request_url,
                              data=github_request_data,
-                             headers=HEADERS['GITHUB'],
-                             hooks=dict(response=print_url)
+                             headers=HEADERS['GITHUB']
                              )
+
 
         logging.info('RESULT OF ARTICLE MIGRATION:\n{0}'.format(migration_request.text))
 

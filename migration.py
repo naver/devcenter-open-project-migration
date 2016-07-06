@@ -346,7 +346,7 @@ def create_issue(project_name, parse_type):
                                                 stream=True
                                                 )
 
-                with open(file_name,'wb') as f:
+                with open('output/'+file_name,'wb') as f:
                     f.write(release_file.content)
 
                 logging.info('RESULT OF RELEASE FILE DOWNLOADING:\n{0}'.format(release_file.raw.read(10)))

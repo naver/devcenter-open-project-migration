@@ -8,7 +8,8 @@
 ## 사용법
 ```sh
 # 프로젝트 다운로드 및 python3 설치
+$ pyvenv venv
+$ . venv/bin/activate
 $ pip install -r requirements.txt
-$ ./config_gen.py
-$ ./issue_migration.py {프로젝트 이름} {issue, forum, download}
+$ python migration.py
 ```

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 from github import Github
 from naver import Naver
@@ -26,12 +27,12 @@ def migration(encoding,github_repo,naver_repo,github_id,github_pw,
     gh.create_repo()
 
     # naver_repo의 소스 코드 저장소를 github_repo 로 migration
-    gh.migration_repo(vcs,naver_id,naver_pw,naver_repo)
+    gh.migration_repo(vcs   ,naver_id,naver_pw,naver_repo)
 
     naver = Naver(naver_id,naver_pw,naver_repo,gh)
     # naver_repo 에 있는 이슈 게시판 다운로드를 파싱하
     naver.parsing()
-    
+
     curdir = os.getcwd()
 
     os.chdir(curdir + '/wiki_repos/'+github_repo)

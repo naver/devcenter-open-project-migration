@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from github3 import authorize,login
 from os.path import exists
 from os import makedirs

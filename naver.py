@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 from bs4 import BeautifulSoup
 from requests import request
@@ -6,13 +7,10 @@ from overrides import overrides
 from tqdm import tqdm
 from os.path import exists
 from os import makedirs
-import xml.etree.ElementTree as ET
 import logging, traceback, sys
 import time
 import json
-import re
 import requests
-
 
 # Request Warning 출력 안하게
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -91,7 +89,7 @@ class Naver(Provider):
 
     @overrides
     def create_url(self):
-        urls = dict()    
+        urls = dict()
         types = ['issue','forum','download']
 
         for parse_type in types:

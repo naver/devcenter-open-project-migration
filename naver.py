@@ -22,37 +22,35 @@ making_html_soup = lambda content: BeautifulSoup(content,'lxml')
 making_xml_soup = lambda content: BeautifulSoup(content,'xml')
 
 class Naver(Provider):
-    __basic_url = 'http://staging.dev.naver.com/projects'
-
-    def __init__(self,username,password,repo_name):
+    _api_url = 'http://staging.dev.naver.com'
+    
+    def __init__(self,username,password,repo_name,gh):
         super().__init__(username,password,repo_name)
 
-        self.__basic_url = '{0}/{1}'.format(self.__basic_url,self._repo_name)
+        self._basic_url = '{0}/projects/{1}'.format(self._api_url,self._repo_name)
         self._urls = self.create_url()
+        self._gh = gh
 
     @overrides
-    def parsing(self, github_session):
-        for board_type,urls in self._urls.items():
-            for url in urls:
-                r = self.request("GET",url)
-                artifacts = making_xml_soup(r.content)
+    def parsing(self):
+        for board_type,url in self._urls.items():
+            r = self.request("GET",url)
+            artifacts = making_xml_soup(r.content)
 
-                try:
-                    self.parsing_element(artifacts,board_type,github_session)
-                except Exception as e:
-                    traceback.print_exc(file=sys.stdout)
+            try:
+                self.parsing_element(artifacts,board_type)
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
 
-    def parsing_element(self,artifacts,board_type,gh):
+    def parsing_element(self,artifacts,board_type):
         tag_name = 'artifact_id' if board_type is not 'download' else 'release_id'
 
         artifact_list = artifacts.find_all(tag_name)
-        print(board_type)
+        print(str.upper(board_type) + ' migrating...')
 
         for id_tag in tqdm(artifact_list):
             artifact_id = id_tag.get_text()
-            request_url = '{0}/{1}/{2}.xml'.format(self.__basic_url,
-                                                   board_type,
-                                                   artifact_id)
+            request_url = '{0}/{1}/{2}.xml'.format(self._basic_url,board_type,artifact_id)
             r_artifact = self.request("GET",request_url)
 
             if len(r_artifact.content) is 0:
@@ -61,17 +59,17 @@ class Naver(Provider):
 
             parsed_artifact = making_xml_soup(r_artifact.content)
             self._json_data, release_files = self.get_json(artifact_id,parsed_artifact,
-                                            board_type,gh)
+                                            board_type)
 
-            github_request_url = '{0}/repos/{1}/{2}/'.format(gh._basic_url,
-                                                            gh._username,
-                                                            gh._repo_name)
+            github_request_url = '{0}/repos/{1}/{2}/'.format(self._gh._basic_url,
+                                                            self._gh._username,
+                                                            self._gh._repo_name)
             if release_files is not None:
                 github_request_url+='releases'
             else:
                 github_request_url+='import/issues'
 
-            import_headers = gh._headers
+            import_headers = self._gh._headers
             import_headers['Accept'] = 'application/vnd.github.golden-comet-preview'
 
 
@@ -89,36 +87,28 @@ class Naver(Provider):
 
                         release = gh._repo.release(id=release_id)
                         release.upload_asset('application/zip',fname,release_file.content)
-            except Exception as e:
-                traceback.print_exc(file=sys.stdout)
+            except KeyError:
+                print("이미 있는 릴리즈입니다.")
 
     @overrides
     def create_url(self):
         urls = dict()
 
         for parse_type in ['issue','forum','download']:
-            urls[parse_type] = list()
+            # 게시판 및 이슈 목록
+            url = '{0}/{1}'.format(self._basic_url,parse_type)
+            r = request("GET",url)
+            soup = making_html_soup(r.content)
 
-            if parse_type != 'download':
-                # 게시판 및 이슈 목록
-                url = '{0}/{1}'.format(self.__basic_url,parse_type)
-                r = request("GET",url)
-                soup = making_html_soup(r.content)
+            cond_class = 'menu_{0} on selected'.format(parse_type)
+            class_list = soup.find(class_=cond_class)
 
-                cond_class = 'menu_{0} on selected'.format(parse_type)
-                class_list = soup.find(class_=cond_class)
-
-                if class_list is not None:
-                    for a in class_list.find_all('a'):
-                        name = a['href'].split('/projects/'+self._repo_name + '/')[1]
-                        urls[parse_type].append('{0}/{1}.xml'.format(self.__basic_url,name))
-
-                    urls[parse_type] = list(set(urls[parse_type]))
-                else:
-                    urls[parse_type].append('{0}/{1}.xml'.format(self.__basic_url,parse_type))
-
-            elif parse_type is 'download':
-                urls[parse_type].append('{0}/{1}.xml'.format(self.__basic_url,parse_type))
+            if class_list is not None:
+                for a in class_list.find_all('a'):
+                    name = a['href'].split('/projects/'+self._repo_name + '/')[1]
+                    urls[name] = '{0}/{1}.xml'.format(self._basic_url,name)
+            else:
+                urls[parse_type] = '{0}.xml'.format(url)
 
         return urls
 
@@ -132,7 +122,7 @@ class Naver(Provider):
         except:
             return temp.replace(' ','')
 
-    def get_json(self,artifact_id,parsed_xml,board_type,gh):
+    def get_json(self,artifact_id,parsed_xml,board_type):
         parsed = parsed_xml
         id_ = artifact_id
         type_ = board_type
@@ -176,12 +166,12 @@ class Naver(Provider):
                     body_file_name = item.find('name').get_text()
                     body_file_id = item.find('id').get_text()
 
-                    down_url = "http://staging.dev.naver.com{0}".format(body_file_link)
+                    down_url = "{0}{1}".format(self._api_url,body_file_link)
                     status_code = self.file_download(
                         down_url,
                         body_file_name,
                         id_,
-                        body_file_id,gh
+                        body_file_id
                         )
 
                     if status_code is 200:
@@ -191,24 +181,27 @@ class Naver(Provider):
                     else:
                         status = 'FAILED'
 
-                    body_uploaded_link = 'https://github.com/{0}/{1}/wiki/attachFile/{2}/{3}/{4}'.format(gh._username,
-                                                  gh._repo_name,
+                    body_uploaded_link = 'https://github.com/{0}/{1}/wiki/attachFile/{2}/{3}/{4}'.format(self._gh._username,
+                                                  self._gh._repo_name,
                                                   id_,
                                                   body_file_id,
                                                   body_file_name)
 
 
                     attach_links+='* {0}\n\n\t![{0}]({1})\n\n'.format(body_file_name,body_uploaded_link)
-                    #print("{0} 's downloading is {1}".format(body_file_name, status))
 
-            if board_type is 'issue':
-                description = "This issue created by **{0}** and assigned to **{1}** | {2}\n\n------\n\n{3}{4}".format(author,
-                                                     assignee,
-                                                     open_date,
-                                                     body,
-                                                     attach_links)
-            elif board_type is 'forum':
-                description = "This forum created by **{0}** | {1}\n\n------\n\n{2}{3}".format(author,open_date,body,attach_links)
+                # 본문 첨부파일 없으면 Attachments 출력 x
+                if attach_links is '\n\n-----\n### Attachments\n':
+                    attach_links = ''
+
+            assignee_text = 'and assigned to **{0}**'.format(assignee) if assignee is not 'Nobody' else ''
+            description = "This {0} created by **{1}** {2} | {3}\n\n------\n\n{4}{5}".format(
+                                                    board_type,
+                                                    author,
+                                                    assignee_text,
+                                                    open_date,
+                                                    body,
+                                                    attach_links)
 
             comments = parsed.comments
             processed_comment_list = []
@@ -247,12 +240,12 @@ class Naver(Provider):
                             comment_file_id = item.find('id').get_text()
                             file_link = item.find('link').get_text()
                             file_name = file_link.split('/')[-1]
-                            down_url = "http://staging.dev.naver.com{0}".format(file_link)
+                            down_url = "{0}{1}".format(self._api_url,file_link)
 
                             status_code = self.file_download(down_url,
                                                              file_name,
                                                              id_,
-                                                             comment_file_id,gh,
+                                                             comment_file_id,
                                                              comment_id=comment_id)
                             if status_code is 200:
                                 status = 'GOOD'
@@ -261,14 +254,13 @@ class Naver(Provider):
                             else:
                                 status = 'FAILED'
 
-                            comment_uploaded_link = 'https://github.com/{0}/{1}/wiki/attachFile/{2}/{3}/{4}/{5}'.format(gh._username,
-                                                          gh._repo_name,
+                            comment_uploaded_link = 'https://github.com/{0}/{1}/wiki/attachFile/{2}/{3}/{4}/{5}'.format(self._gh._username,
+                                                          self._gh._repo_name,
                                                           id_,
                                                           comment_id,
                                                           comment_file_id,
                                                           file_name)
                             comment_attach_links+='* {0}\n\n\t![{0}]({1})\n\n'.format(file_name,comment_uploaded_link)
-                            #print("{0} 's downloading is {1}".format(file_name, status))
 
                     c_body = "This comment created by **{0}** | {1}\n\n------\n\n{2}{3}".format(
                                 comment_author,print_comment_time,comment_body,comment_attach_links
@@ -304,9 +296,9 @@ class Naver(Provider):
                 release_file_id = item.find('id').get_text()
                 release_file_name = item.find('name').get_text()
                 release_file_down_url = \
-                        'http://staging.dev.naver.com/frs/download.php/{0}/{1}'\
+                        '{0}/frs/download.php/{1}/{2}'\
                         .format(
-                                release_file_id,release_file_name
+                                self._api_url,release_file_id,release_file_name
                                 )
 
                 # 파일을 다운로드 함 release_file
@@ -324,9 +316,9 @@ class Naver(Provider):
 
             return result, release_files
 
-    def file_download(self,url,file_name,artifact_id,file_id,gh,**kwargs):
+    def file_download(self,url,file_name,artifact_id,file_id,**kwargs):
         comment_id = kwargs.get('comment_id')
-        attachFilePath = gh._attachFilePath
+        attachFilePath = self._gh._attachFilePath
 
         if not comment_id:
             down_path = '{0}/{1}/{2}/'.format(attachFilePath,

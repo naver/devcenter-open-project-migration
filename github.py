@@ -89,15 +89,9 @@ class Github(Provider):
 
         if not exists(self._attachFilePath):
             makedirs(self._attachFilePath)
-            print("{0} 폴더가 성공적으로 만들어짐".format(self._attachFilePath))
-        else:
-            print("{0} 폴더가 이미 만들어짐".format(self._attachFilePath))
 
         if not repo:
             repo = self.__session.create_repo(name)
-            print("{0} 가 성공적으로 만들어짐".format(name))
-        else:
-            print("{0} 가 이미 만들어짐".format(name))
 
         self._repo = repo
         return repo
@@ -111,8 +105,5 @@ class Github(Provider):
 
         repo = self.__session.repository(self._username,name)
 
-        if not repo:
-            print("{0} 가 없음".format(name))
-        else:
+        if repo:
             repo.delete()
-            print("{0} 가 성공적으로 삭제됨".format(name))

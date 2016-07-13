@@ -18,10 +18,11 @@ import subprocess
 @click.option('--vcs',prompt=True,help='Version control system of open project')
 def migration(encoding,github_repo,naver_repo,github_id,github_pw,
         naver_id,naver_pw,vcs):
-    # github 로그인
+
+    # github login
     gh = Github(github_id,github_pw,github_repo)
 
-    # github_repo 라는 이름의 저장소를 만들기
+    # Making github repository
     gh.create_repo()
 
     # naver_repo의 소스 코드 저장소를 github_repo 로 migration
@@ -30,17 +31,20 @@ def migration(encoding,github_repo,naver_repo,github_id,github_pw,
     naver = Naver(naver_id,naver_pw,naver_repo,gh)
     # naver_repo 에 있는 이슈 게시판 다운로드를 파싱하
     naver.parsing()
-
+    
     curdir = os.getcwd()
-    os.chdir(curdir + '/wiki_repos/'+gh._repo_name)
-    wiki_git = 'https://github.com/{0}/{1}.wiki.git'.format(gh._username,gh._repo_name)
 
+    os.chdir(curdir + '/wiki_repos/'+github_repo)
+
+    wiki_git = 'https://github.com/{0}/{1}.wiki.git'.format(github_id,github_repo)
+    push_wiki_git = 'https://{0}:{1}@github.com/{0}/{2}.wiki.git'.format(github_id,github_pw,github_repo)
     subprocess.run(['git','init'])
     subprocess.run(['git','remote','add','origin',wiki_git])
-    subprocess.run(['git','pull','origin', 'master'])
+    subprocess.run(['git','pull',push_wiki_git, 'master'])
     subprocess.run(['git','add','--all'])
     subprocess.run(['git','commit','-m','all asset commit'])
-    subprocess.run(['git','push','origin','master'])
+
+    subprocess.run(['git','push',push_wiki_git,'master'])
 
     os.chdir(curdir)
 

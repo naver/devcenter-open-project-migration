@@ -23,10 +23,9 @@ making_xml_soup = lambda content: BeautifulSoup(content,'xml')
 
 class Naver(Provider):
     _api_url = 'http://staging.dev.naver.com'
-    
+
     def __init__(self,username,password,repo_name,gh):
         super().__init__(username,password,repo_name)
-
         self._basic_url = '{0}/projects/{1}'.format(self._api_url,self._repo_name)
         self._urls = self.create_url()
         self._gh = gh
@@ -85,16 +84,17 @@ class Naver(Provider):
                     for fname, release_file in release_files.items():
                         d = release_file.headers['content-disposition']
 
-                        release = gh._repo.release(id=release_id)
+                        release = self._gh._repo.release(id=release_id)
                         release.upload_asset('application/zip',fname,release_file.content)
             except KeyError:
                 print("이미 있는 릴리즈입니다.")
 
     @overrides
     def create_url(self):
-        urls = dict()
+        urls = dict()    
+        types = ['issue','forum','download']
 
-        for parse_type in ['issue','forum','download']:
+        for parse_type in types:
             # 게시판 및 이슈 목록
             url = '{0}/{1}'.format(self._basic_url,parse_type)
             r = request("GET",url)

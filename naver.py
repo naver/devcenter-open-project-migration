@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/env python3
+#!/usr/bin/env python
 from bs4 import BeautifulSoup
 from requests import request
 from provider import Provider
@@ -9,8 +9,15 @@ from os.path import exists
 from os import makedirs
 import logging, traceback, sys
 import time
+from time import sleep
 import json
 import requests
+import platform
+import sys
+
+if platform.python_version()[0] is '2':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
 # Request Warning 출력 안하게
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -23,7 +30,9 @@ class Naver(Provider):
     _api_url = 'http://staging.dev.naver.com'
 
     def __init__(self,username,password,repo_name,gh):
-        super().__init__(username,password,repo_name)
+        # python3 style
+        #super().__init__(username,password,repo_name)
+        Provider.__init__(self,username,password,repo_name)
         self._basic_url = '{0}/projects/{1}'.format(self._api_url,self._repo_name)
         self._urls = self.create_url()
         self._gh = gh
@@ -38,12 +47,14 @@ class Naver(Provider):
                 self.parsing_element(artifacts,board_type)
             except Exception as e:
                 traceback.print_exc(file=sys.stdout)
+                self._gh.delete_repo()
+                exit()
 
     def parsing_element(self,artifacts,board_type):
         tag_name = 'artifact_id' if board_type is not 'download' else 'release_id'
 
         artifact_list = artifacts.find_all(tag_name)
-        print(str.upper(board_type) + ' migrating...')
+        print(board_type.upper() + ' migrating...')
 
         for id_tag in tqdm(artifact_list):
             artifact_id = id_tag.get_text()
@@ -69,23 +80,41 @@ class Naver(Provider):
             import_headers = self._gh._headers
             import_headers['Accept'] = 'application/vnd.github.golden-comet-preview'
 
+            if self._gh.repo_migration_complete or board_type != 'download':
+                self.doing_migration(github_request_url,self._json_data,import_headers,release_files)
+            else:
+                while not self._gh.repo_migration_complete:
+                    import_headers = self._gh._headers
+                    import_headers['Accept'] = 'application/vnd.github.barred-rock-preview'
 
-            migration_request = request("POST",github_request_url,
-                                    data=self._json_data,
-                                    headers=import_headers
-                                    )
+                    import_confirm = request('GET',self._gh._import_request_url,headers=import_headers)
 
-            try:
-                if release_files:
+                    if import_confirm.json()['status'] == 'complete':
+                        self._gh.repo_migration_complete = True
+                        self.doing_migration(github_request_url,self._json_data,import_headers,release_files)
+                    else:
+                        print("Waiting 5 seconds for finishing migration...")
+                        sleep(5)
+                        continue
+
+    def doing_migration(self,url,data,header,files):
+        migration_request = request("POST",url,
+                                data=data,
+                                headers=header
+                                )
+
+        try:
+            if files:
                     release_id = migration_request.json()['id']
 
-                    for fname, release_file in release_files.items():
+                    for fname, release_file in files.items():
                         d = release_file.headers['content-disposition']
 
                         release = self._gh._repo.release(id=release_id)
                         release.upload_asset('application/zip',fname,release_file.content)
-            except KeyError:
-                print("이미 있는 릴리즈입니다.")
+        except KeyError:
+            traceback.print_exc(file=sys.stdout)
+            print("이미 있는 릴리즈입니다.")
 
     @overrides
     def create_url(self):
@@ -112,7 +141,8 @@ class Naver(Provider):
 
     # Version name 을 어떻게든 얻어보고자 고군분투하는 함수
     def get_version(self,title):
-        temp = str.upper(title).replace(str.upper(self._repo_name),'')
+        #temp = str.upper(title).replace(str.upper(self._repo_name),'')
+        temp = title.upper().replace(self._repo_name.upper(),'')
         try:
             result = int(temp)
             if result < 0:

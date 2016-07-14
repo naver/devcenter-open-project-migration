@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
+#!/usr/bin/env python
 from github3 import authorize,login
 from os.path import exists
 from os import makedirs
 from provider import Provider
 from json import dumps
+import platform
+import sys
+
+if platform.python_version()[0] is '2':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
 class Github(Provider):
     __access_token_file_name = 'GITHUB_ACCESS_TOKEN'
     _basic_url = 'https://api.github.com'
 
     def __init__(self, username, password, repo_name):
-        super().__init__(username,password,repo_name)
+        Provider.__init__(self,username,password,repo_name)
         self._token = self.make_access_token(username,password)
 
         if self._token == 'login failed':
@@ -54,7 +61,10 @@ class Github(Provider):
             )
 
         r = self.request("PUT",request_url,data=request_data,headers=import_headers)
+        self._import_request_url = r.json()['url']
+        self.repo_migration_complete = True if r.json()['status'] is 'complete' else False
 
+        return self.repo_migration_complete
 
     def make_access_token(self,username,password):
         if exists(self.__access_token_file_name):
@@ -108,3 +118,6 @@ class Github(Provider):
 
         if repo:
             repo.delete()
+
+if __name__ == '__main__':
+    pass

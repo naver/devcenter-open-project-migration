@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 from requests import request
-import time,logging
-
-logging.basicConfig(filename='logs/' + time.strftime("%Y-%m-%d %H:%M:%S")+'.log',level=logging.DEBUG)
 
 class Provider:
     def __init__(self, username, password, repo_name):
@@ -23,6 +20,5 @@ class Provider:
         r = request(method, url, headers=headers, data=data)
 
         r.encoding = 'utf-8'
-        logging.info("Result request {0}".format(r.status_code))
 
         return r

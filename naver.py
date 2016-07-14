@@ -7,7 +7,7 @@ from overrides import overrides
 from tqdm import tqdm
 from os.path import exists
 from os import makedirs
-import logging, traceback, sys
+import traceback, sys
 import time
 from time import sleep
 import json
@@ -18,10 +18,6 @@ import sys
 if platform.python_version()[0] is '2':
     reload(sys)
     sys.setdefaultencoding('utf-8')
-
-# Request Warning 출력 안하게
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 making_html_soup = lambda content: BeautifulSoup(content,'lxml')
 making_xml_soup = lambda content: BeautifulSoup(content,'xml')

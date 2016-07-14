@@ -6,6 +6,7 @@ from os import makedirs
 from provider import Provider
 from json import dumps
 import platform
+import random
 import sys
 
 if platform.python_version()[0] is '2':
@@ -61,8 +62,13 @@ class Github(Provider):
             )
 
         r = self.request("PUT",request_url,data=request_data,headers=import_headers)
-        self._import_request_url = r.json()['url']
-        self.repo_migration_complete = True if r.json()['status'] is 'complete' else False
+
+        try:
+            self._import_request_url = r.json()['url']
+            self.repo_migration_complete = True if r.json()['status'] is 'complete' else False
+        except:
+            self._import_request_url = request_url
+            self.repo_migration_complete = True
 
         return self.repo_migration_complete
 

@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
+from migration import __version__
 
 with open('README.rst') as f:
     readme = f.read()
 
 setup(
     name='migration',
-    version='0.1',
-    description='Naver open project migration'
+    version=__version__
+    description='Naver open project migration',
     long_description=readme,
     author='Taehwan Kim',
     author_email='maxtortime@navercorp.com',
@@ -18,10 +19,11 @@ setup(
         'lxml',
         'overrides',
         'tqdm',
-        'github3.py'
+        'github3.py',
+        'requests'
     ],
     entry_points='''
         [console_scripts]
-        migration=migration:migration
+        migration=migration.cli:migration
     ''',
 )

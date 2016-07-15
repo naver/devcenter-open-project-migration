@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
-from github import Github
-from naver import Naver
+from .github import Github
+from .naver import Naver
 from os.path import exists
 from os import makedirs
 import click
@@ -30,7 +30,7 @@ def migration(encoding,github_repo,naver_repo,github_id,github_pw,
 
     # Making github repository
     gh.create_repo()
-    
+
     try:
         # naver_repo의 소스 코드 저장소를 github_repo 로 migration
         migration_status = gh.migration_repo(vcs,naver_id,naver_pw,naver_repo)
@@ -65,7 +65,6 @@ def upload_asset_by_git(username,password,repo_name):
         subprocess.call(command)
 
     os.chdir(curdir)
-
-
+    
 if __name__ == '__main__':
     migration()

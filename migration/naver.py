@@ -2,7 +2,7 @@
 #!/usr/bin/env python
 from bs4 import BeautifulSoup
 from requests import request
-from provider import Provider
+from .provider import Provider
 from overrides import overrides
 from tqdm import tqdm
 from os.path import exists
@@ -36,7 +36,7 @@ class Naver(Provider):
     @overrides
     def parsing(self):
         for board_type,url in self._urls.items():
-            r = self.request("GET",url)
+            r = request("GET",url)
             artifacts = making_xml_soup(r.content)
 
             try:
@@ -55,7 +55,7 @@ class Naver(Provider):
         for id_tag in tqdm(artifact_list):
             artifact_id = id_tag.get_text()
             request_url = '{0}/{1}/{2}.xml'.format(self._basic_url,board_type,artifact_id)
-            r_artifact = self.request("GET",request_url)
+            r_artifact = request("GET",request_url)
 
             if len(r_artifact.content) is 0:
                 print(board_type,artifact_id,"BLANK XML")

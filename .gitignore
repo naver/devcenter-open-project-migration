@@ -11,6 +11,7 @@ wiki_repos/
 *output/
 control.py
 GITHUB_ACCESS_TOKEN
+credentials
 
 # Github provided
 # Byte-compiled / optimized / DLL files

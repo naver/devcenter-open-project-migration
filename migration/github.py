@@ -3,7 +3,8 @@
 from github3 import authorize,login
 from os.path import exists
 from os import makedirs
-from provider import Provider
+from .provider import Provider
+from requests import request
 from json import dumps
 import platform
 import random
@@ -61,7 +62,7 @@ class Github(Provider):
                 )
             )
 
-        r = self.request("PUT",request_url,data=request_data,headers=import_headers)
+        r = request("PUT",request_url,data=request_data,headers=import_headers)
 
         try:
             self._import_request_url = r.json()['url']

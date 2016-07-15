@@ -10,7 +10,6 @@ config.py.*
 wiki_repos/
 *output/
 control.py
-tests/
 GITHUB_ACCESS_TOKEN
 
 # Github provided

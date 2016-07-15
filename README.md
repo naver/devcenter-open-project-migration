@@ -39,6 +39,8 @@
 * 터미널에서 pip를 이용해 프로그램에 필요한 python 패키지를 설치해주세요.
 
   > $ pip install --editable .
+
+* **중요!!** 현재 XML 파싱을 위해 [lxml](http://lxml.de/)을 사용하고 있습니다. 윈도우 사용자 분들은 반드시 [이 링크](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml)로 가셔서 적절한 lxml whl 파일을 다운로드 해주시고 나서 pip로 설치해주시면 되겠습니다.
 * 프로그램을 실행시켜주세요
 
   > $ migration

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
-from bs4 import BeautifulSoup
+from .helper import making_soup,set_encoding
 from requests import request
 from .provider import Provider
 from overrides import overrides
@@ -12,15 +12,9 @@ import time
 from time import sleep
 import json
 import requests
-import platform
 import sys
 
-if platform.python_version()[0] is '2':
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
-
-making_html_soup = lambda content: BeautifulSoup(content,'lxml')
-making_xml_soup = lambda content: BeautifulSoup(content,'xml')
+set_encoding()
 
 class Naver(Provider):
     _api_url = 'http://staging.dev.naver.com'
@@ -37,7 +31,7 @@ class Naver(Provider):
     def parsing(self):
         for board_type,url in self._urls.items():
             r = request("GET",url)
-            artifacts = making_xml_soup(r.content)
+            artifacts = making_soup(r.content,'xml')
 
             try:
                 self.parsing_element(artifacts,board_type)
@@ -61,7 +55,7 @@ class Naver(Provider):
                 print(board_type,artifact_id,"BLANK XML")
                 continue
 
-            parsed_artifact = making_xml_soup(r_artifact.content)
+            parsed_artifact = making_soup(r_artifact.content,'xml')
             self._json_data, release_files = self.get_json(artifact_id,parsed_artifact,
                                             board_type)
 
@@ -94,10 +88,7 @@ class Naver(Provider):
                         continue
 
     def doing_migration(self,url,data,header,files):
-        migration_request = request("POST",url,
-                                data=data,
-                                headers=header
-                                )
+        migration_request = request("POST",url,data=data,headers=header)
 
         try:
             if files:
@@ -121,7 +112,7 @@ class Naver(Provider):
             # 게시판 및 이슈 목록
             url = '{0}/{1}'.format(self._basic_url,parse_type)
             r = request("GET",url)
-            soup = making_html_soup(r.content)
+            soup = making_soup(r.content,'html')
 
             cond_class = 'menu_{0} on selected'.format(parse_type)
             class_list = soup.find(class_=cond_class)

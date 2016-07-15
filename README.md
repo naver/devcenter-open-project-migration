@@ -1,89 +1,70 @@
-# NAVER Open Project migration
+# Open Project Migration
 ## 개요
- [네이버 오픈 프로젝트](http://dev.naver.com/projects)를 Github로 migration 하는 모듈입니다.
+[네이버 오픈 프로젝트](http://dev.naver.com/projects)를 GitHub로 migration 하는 CLI(Comamnd Line Interface) 프로그램입니다. 아래와 같은 기능을 갖추고 있습니다. 
 
- 아래의 기능들을 구현 목표로 합니다.
- 1. 게시판 & 이슈의 게시물들을 GitHub의 이슈로 migration.
- 2. 프로젝트의 코드,커밋 로그등을 GitHub로 migration
- 3. 다운로드를 GitHub releases로 migration
+## 기능
+1. 게시판, 이슈의 첨부파일들을 포함한 글과 댓글들을 GitHub 이슈로 마이그레이션.
+2. 다운로드의 게시물과 파일들을 GitHub 릴리즈로 마이그레이션.
+3. Git/SVN 소스코드 저장소 마이그레이션.
 
-## 설계
-* Dependencies
-  * Python 3.5.1+
-  * requests 2.10.0
-  * [오픈 프로젝트 API](http://dev.naver.com/projects/nforge/wiki/APIGuide)
-  * [GitHub API](https://developer.github.com/v3/)
-* issue_migrate.py
+## Dependencies
+* Python 2.7 이상
+* Git 2.7 이상
 
-  이슈 및 게시판의 게시물과 댓글들을 migration 하는 기능을 구현.
-  사내 staging API 서버(http://staging.dev.naver.com)에 게시판(forum.xml), 이슈(issue.xml)을 요청해서 받아 온
-  후 이 XML 파일들을 파싱해서 각 게시물&이슈의 id로 다시 각 게시물의 XML을 받아
-  온 후 파싱하여 GitHub API(https://api.github.com) 로 보내서 새로운 이슈를 만들게 된다.
+## 사용법
+* 유효한 GitHub, NAVER 계정을 준비해주세요.
+* Python과 Git을 설치해주세요.
+* 이 프로젝트를 다운로드 받아주세요.
+* 터미널에서 pip를 이용해 프로그램에 필요한 python 패키지를 설치해주세요.
 
-  * 주요 이슈
-    1. 이슈, 게시물, 댓글의 작성자를 표시할 수 없음
+  > $ pip install --editable .
+* 프로그램을 실행시켜주세요
 
-      GitHub로 요청을 보내는 사용자로 작성자가 고정됨. 그래서 이슈 제목에
-      이슈 작성자(assign)와 담당자(assignee) 을 명시함.
-      ```
-      [작성자->담당자] 제목
-      ```
-      댓글의 작성자 역시 댓글 본문 위에 작성자를 표시.
-      ```
-      작성자
-      댓글 본문
-      ```
+  > $ migration
+  
+* 이제 프로그램의 지시에 따라 각종 정보를 입력해주시면 자동으로 migration이 진행됩니다.
+  ```sh
+  $ pyvenv venv
+  $ . venv/bin/activate
+  $ pip install --editable .
+  $ migration # 프로그램 실행 명령
+  # 목적지 GitHub 저장소 이름
+  Github repo: open-project-migration-test
+  # Migration 할 네이버 프로젝트 이름
+  Naver repo: test
+  # 진짜 Github 계정명 및 비밀번호
+  Github id: foo
+  Github pw: 1234
+  Repeat for confirmation: 1324
+  Error: the two entered values do not match
+  Github pw: 1234
+  Repeat for confirmation: 1234
+  # 진짜 네이버 계정명 및 비밀번호
+  Naver id: maxtortime
+  Naver pw:
+  Repeat for confirmation:
+  Vcs: svn
+  ```
+* 혹은 아래의 도움말을 참고하셔서 직접 터미널에 옵션을 입력하는 것도 가능합니다
+```sh
+$ migration --help
+Usage: migration [OPTIONS]
 
-* Git & SVN 저장소 migration
-  1. GitHub 저장소를 먼저 만들어야 (이름은 필수)
-  (https://developer.github.com/v3/repos/#create)
+Options:
+  --encoding TEXT     Encoding of files
+  --github_repo TEXT  Name of github repo used for migration
+  --naver_repo TEXT   Name of naver project to migrate
+  --github_id TEXT    Github username
+  --github_pw TEXT    Github password
+  --naver_id TEXT     NAVER username
+  --naver_pw TEXT     NAVER password
+  --vcs TEXT          Version control system of open project
+  --help              Show this message and exit.
+```
+* 미리 Github 저장소를 만들어주시고 아래 안내를 통해 위키까지 만들어주시면 더욱 편한 사용이 가능합니다.
 
-    ```python
-    import requests
-
-    url = "https://api.github.com/user/repos"
-
-    querystring = {"access_token":"엑세스 토큰"}
-
-    payload = "{
-      "name" : "만들 저장소 이름",
-      "description" : "설명"
-    }"
-
-    headers = {
-        'content-type': "application/json",
-        'cache-control': "no-cache"
-        }
-
-    response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
-
-    print(response.text)
-    ```
-  2. Import API 를 써서 저장소 migration
-  (https://developer.github.com/v3/migration/source_imports/#start-an-import)
-
-    ```python
-    import requests
-
-    url = "https://api.github.com/repos/maxtortime/D2Coding/import"
-
-    payload = "
-      {
-      "vcs" : "vcs 종류(Git, svn, Mercurial)",
-      "vcs_url" : " https://dev.naver.com/svn/:프로젝트이름"
-      "vcs_username" : "anonsvn",
-      "vcs_password" : "anonsvn"
-      }
-      "
-    headers = {
-        'accept': "application/vnd.github.barred-rock-preview",
-        'authorization': "token 엑세스토큰",
-        'cache-control': "no-cache",
-        'postman-token': "31f9c9e4-c443-717b-0aa4-51462df3905f"
-        }
-
-    response = requests.request("PUT", url, data=payload, headers=headers)
-
-    print(response.text)
-    ```
-    
+## 주의사항
+* **프로그램 실행 후 반드시 아래 주소로 들어가셔서 위키의 첫 페이지를 만들어주세요!! https://github.com/{계졍명}/{저장소명}/wiki**
+![위키 만들기](https://oss.navercorp.com/communication-service/open-project-migration/wiki/위키만들기.png)
+* **자신의 오픈 프로젝트가 사용하고 있는 버전 컨트롤 시스템의 종류를 정확히 입력해주세요. (git or svn) 정확하지 않으면 소스코드 저장소 migration이 진행되지 않습니다.**
+* **정확한 계정명을 입력하시지 않으면 프로그램이 동작하지 않습니다**

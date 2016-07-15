@@ -2,8 +2,16 @@
 boards/
 *.xml
 venv/
-xml_output/
+
 logs/
+config.py
+config.py.*
+*.zip
+wiki_repos/
+*output/
+control.py
+tests/
+GITHUB_ACCESS_TOKEN
 
 # Github provided
 # Byte-compiled / optimized / DLL files
@@ -88,6 +96,7 @@ celerybeat-schedule
 
 # virtualenv
 venv/
+*venv*
 ENV/
 
 # Spyder project settings

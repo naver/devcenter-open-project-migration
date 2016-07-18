@@ -10,8 +10,8 @@ config.py.*
 wiki_repos/
 *output/
 control.py
-tests/
 GITHUB_ACCESS_TOKEN
+credentials
 
 # Github provided
 # Byte-compiled / optimized / DLL files

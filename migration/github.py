@@ -2,16 +2,17 @@
 #!/usr/bin/env python
 from github3 import authorize,login
 from os.path import exists
-from os import makedirs
-from provider import Provider
+from os import makedirs,getcwd,chdir
+from .provider import Provider
+from requests import request
 from json import dumps
-import platform
+from .helper import set_encoding
 import random
 import sys
+import os
+import subprocess
 
-if platform.python_version()[0] is '2':
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
+set_encoding()
 
 class Github(Provider):
     __access_token_file_name = 'GITHUB_ACCESS_TOKEN'
@@ -61,7 +62,7 @@ class Github(Provider):
                 )
             )
 
-        r = self.request("PUT",request_url,data=request_data,headers=import_headers)
+        r = request("PUT",request_url,data=request_data,headers=import_headers)
 
         try:
             self._import_request_url = r.json()['url']
@@ -125,5 +126,23 @@ class Github(Provider):
         if repo:
             repo.delete()
 
-if __name__ == '__main__':
-    pass
+    def upload_asset_by_git(self):
+        push_wiki_git = 'https://{0}:{1}@github.com/{0}/{2}.wiki.git'.format(
+            self._username,self._password,self._repo_name)
+
+        git_commands = [
+            ['git','init'],
+            ['git','remote','add','origin',push_wiki_git],
+            ['git','pull',push_wiki_git, 'master'],
+            ['git','add','--all'],
+            ['git','commit','-m','all asset commit'],
+            ['git','push','-f',push_wiki_git,'master']
+        ]
+
+        curdir = getcwd()
+        chdir(curdir + '/wiki_repos/'+self._repo_name)
+
+        for command in git_commands:
+            subprocess.call(command)
+
+        chdir(curdir)

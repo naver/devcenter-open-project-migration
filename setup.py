@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
+from migration import __version__
 
 setup(
     name='migration',
-    version='0.0.1',
+    version=__version__,
+    description='Naver open project migration',
+    author='Taehwan Kim',
+    author_email='maxtortime@navercorp.com',
     py_modules=['migration'],
     install_requires=[
         'Click',
@@ -11,10 +15,11 @@ setup(
         'lxml',
         'overrides',
         'tqdm',
-        'github3.py'
+        'github3.py',
+        'requests'
     ],
     entry_points='''
         [console_scripts]
-        migration=migration:migration
+        cli=migration.cli:cli
     ''',
 )

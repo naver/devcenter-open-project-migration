@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
-from bs4 import BeautifulSoup
+from .helper import making_soup,set_encoding
 from requests import request
-from provider import Provider
+from .provider import Provider
 from overrides import overrides
 from tqdm import tqdm
 from os.path import exists
@@ -12,15 +12,9 @@ import time
 from time import sleep
 import json
 import requests
-import platform
 import sys
 
-if platform.python_version()[0] is '2':
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
-
-making_html_soup = lambda content: BeautifulSoup(content,'lxml')
-making_xml_soup = lambda content: BeautifulSoup(content,'xml')
+set_encoding()
 
 class Naver(Provider):
     _api_url = 'http://staging.dev.naver.com'
@@ -36,8 +30,8 @@ class Naver(Provider):
     @overrides
     def parsing(self):
         for board_type,url in self._urls.items():
-            r = self.request("GET",url)
-            artifacts = making_xml_soup(r.content)
+            r = request("GET",url)
+            artifacts = making_soup(r.content,'xml')
 
             try:
                 self.parsing_element(artifacts,board_type)
@@ -55,15 +49,18 @@ class Naver(Provider):
         for id_tag in tqdm(artifact_list):
             artifact_id = id_tag.get_text()
             request_url = '{0}/{1}/{2}.xml'.format(self._basic_url,board_type,artifact_id)
-            r_artifact = self.request("GET",request_url)
+            r_artifact = request("GET",request_url)
 
             if len(r_artifact.content) is 0:
                 print(board_type,artifact_id,"BLANK XML")
                 continue
 
-            parsed_artifact = making_xml_soup(r_artifact.content)
-            self._json_data, release_files = self.get_json(artifact_id,parsed_artifact,
+            parsed_artifact = making_soup(r_artifact.content,'xml')
+            try:
+                self._json_data, release_files = self.get_json(artifact_id,parsed_artifact,
                                             board_type)
+            except:
+                pass
 
             github_request_url = '{0}/repos/{1}/{2}/'.format(self._gh._basic_url,
                                                             self._gh._username,
@@ -94,10 +91,7 @@ class Naver(Provider):
                         continue
 
     def doing_migration(self,url,data,header,files):
-        migration_request = request("POST",url,
-                                data=data,
-                                headers=header
-                                )
+        migration_request = request("POST",url,data=data,headers=header)
 
         try:
             if files:
@@ -121,7 +115,7 @@ class Naver(Provider):
             # 게시판 및 이슈 목록
             url = '{0}/{1}'.format(self._basic_url,parse_type)
             r = request("GET",url)
-            soup = making_html_soup(r.content)
+            soup = making_soup(r.content,'html')
 
             cond_class = 'menu_{0} on selected'.format(parse_type)
             class_list = soup.find(class_=cond_class)

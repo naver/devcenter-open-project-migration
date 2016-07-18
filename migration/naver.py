@@ -56,8 +56,11 @@ class Naver(Provider):
                 continue
 
             parsed_artifact = making_soup(r_artifact.content,'xml')
-            self._json_data, release_files = self.get_json(artifact_id,parsed_artifact,
+            try:
+                self._json_data, release_files = self.get_json(artifact_id,parsed_artifact,
                                             board_type)
+            except:
+                pass
 
             github_request_url = '{0}/repos/{1}/{2}/'.format(self._gh._basic_url,
                                                             self._gh._username,

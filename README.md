@@ -51,7 +51,7 @@
   $ pyvenv venv
   $ . venv/bin/activate
   $ pip install --editable .
-  $ migration # 프로그램 실행 명령
+  $ cli # 프로그램 실행 명령
   # 목적지 GitHub 저장소 이름
   Github repo: open-project-migration-test
   # Migration 할 네이버 프로젝트 이름
@@ -69,11 +69,11 @@
   Repeat for confirmation:
   Vcs: svn
   ```
-* 혹은 아래의 도움말(migration --help 타이핑 하면 확인 가능)을 참고하셔서 직접 터미널에 옵션을 입력하는 것도 가능합니다.
+* 혹은 아래의 도움말(cli --help 타이핑 하면 확인 가능)을 참고하셔서 직접 터미널에 옵션을 입력하는 것도 가능합니다.
 
   ```sh
-  $ migration --help
-  Usage: migration [OPTIONS]
+  $ cli --help
+  Usage: cli [OPTIONS]
 
   Options:
     --encoding TEXT     Encoding of files

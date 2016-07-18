@@ -7,7 +7,8 @@ from os import makedirs
 import webbrowser
 import click
 import os
-from .helper import set_encoding, check_validate_project_name
+from .helper import set_encoding
+from .project import Project
 import sys
 
 set_encoding()
@@ -24,8 +25,7 @@ set_encoding()
 def cli(encoding,github_repo,naver_repo,github_id,github_pw,
         naver_id,naver_pw,vcs):
     # 올바른 프로젝트인지 검증
-    invalid_project_msg = '{0} 프로젝트는 존재하지 않습니다'.format(naver_repo)
-    assert check_validate_project_name(naver_repo) is True, invalid_project_msg
+    project = Project(naver_repo,'http://staging.dev.naver.com')
 
     # github login
     gh = Github(github_id,github_pw,github_repo)
@@ -40,8 +40,8 @@ def cli(encoding,github_repo,naver_repo,github_id,github_pw,
         click.echo('Save Page 버튼을 눌러주세요!')
 
     # naver_repo의 소스 코드 저장소를 github_repo 로 migration
-    migration_status = gh.migration_repo(vcs,naver_id,naver_pw,naver_repo)
-    naver = Naver(naver_id,naver_pw,naver_repo,gh)
+    migration_status = gh.migration_repo(vcs,naver_id,naver_pw,project._project_name)
+    naver = Naver(naver_id,naver_pw,project._project_name,gh)
 
     # naver_repo 에 있는 이슈 게시판 다운로드를 파싱하기
     naver.parsing()

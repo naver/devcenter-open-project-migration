@@ -40,10 +40,11 @@
 
   > $ pip install --editable .
 
-* **중요!!** 현재 XML 파싱을 위해 [lxml](http://lxml.de/)을 사용하고 있습니다. 윈도우 사용자 분들은 반드시 [이 링크](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml)로 가셔서 적절한 lxml whl 파일을 다운로드 해주시고 나서 pip로 설치해주시면 되겠습니다.
+* **중요!!** 현재 XML 파싱을 위해 [lxml](http://lxml.de/)을 사용하고 있습니다. 윈도우 사용자 분들은 *반드시 [이 링크](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml)로 가셔서* 적절한 lxml whl 파일을 다운로드 해주시고 나서 pip로 설치해주시면 되겠습니다.
+ > $ pip install {방금 다운로드한 파일 이름}.whl
 * 프로그램을 실행시켜주세요
 
-  > $ migration
+  > $ cli
 
 * 이제 프로그램의 지시에 따라 각종 정보를 입력해주시면 자동으로 migration이 진행됩니다.
 
@@ -87,6 +88,7 @@
     --help              Show this message and exit.
   ```
 * 마이그레이션이 시작되면 자동으로 웹브라우저가 열리면서 위키 페이지를 만들 수 있는 창이 뜹니다. 맨 아래 Save Page 버튼을 누르셔서 위키 페이지를 만들어주세요. 만들고 난 후 웹브라우저는 종료하셔도 됩니다.
+
 ## 주의사항
 * **프로그램 실행 전 반드시 아래 주소로 들어가셔서 위키의 첫 페이지를 만들어주세요!!     https://github.com/{계졍명}/{저장소명}/wiki**
 

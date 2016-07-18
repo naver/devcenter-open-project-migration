@@ -2,6 +2,7 @@
 #!/usr/bin/env python
 import platform
 from bs4 import BeautifulSoup
+import sys
 
 # python 2.* 버전일 경우 인코딩을 강제로 정해줘야 함
 # 각 파일마다 동작시킬 것

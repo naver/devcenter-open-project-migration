@@ -7,7 +7,7 @@ from os import makedirs
 import webbrowser
 import click
 import os
-from .helper import set_encoding
+from .helper import set_encoding, check_validate_project_name
 import sys
 
 set_encoding()
@@ -21,8 +21,12 @@ set_encoding()
 @click.option('--naver_id',prompt=True,help='NAVER username')
 @click.password_option('--naver_pw',help='NAVER password')
 @click.option('--vcs',prompt=True,help='Version control system of open project')
-def migration(encoding,github_repo,naver_repo,github_id,github_pw,
+def cli(encoding,github_repo,naver_repo,github_id,github_pw,
         naver_id,naver_pw,vcs):
+    # 올바른 프로젝트인지 검증
+    invalid_project_msg = '{0} 프로젝트는 존재하지 않습니다'.format(naver_repo)
+    assert check_validate_project_name(naver_repo) is True, invalid_project_msg
+
     # github login
     gh = Github(github_id,github_pw,github_repo)
 
@@ -44,4 +48,4 @@ def migration(encoding,github_repo,naver_repo,github_id,github_pw,
     gh.upload_asset_by_git()
 
 if __name__ == '__main__':
-    migration()
+    cli()

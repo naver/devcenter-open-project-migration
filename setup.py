@@ -20,6 +20,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        migration=migration.cli:migration
+        cli=migration.cli:cli
     ''',
 )

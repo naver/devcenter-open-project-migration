@@ -115,15 +115,19 @@ class Naver(Provider):
             # 게시판 및 이슈 목록
             url = '{0}/{1}'.format(self._basic_url,parse_type)
             r = request("GET",url)
-            soup = making_soup(r.content,'html')
 
+            # HTML 파싱
+            soup = making_soup(r.content,'html')
+            # 각 issue, forum, download 타입에 따라서
+            # 선택된 클래스를 받아온다
             cond_class = 'menu_{0} on selected'.format(parse_type)
             class_list = soup.find(class_=cond_class)
 
             if class_list is not None:
-                for a in class_list.find_all('a'):
+                for a in class_list.ul.find_all('a'):
+                    text = a.get_text()
                     name = a['href'].split('/projects/'+self._repo_name + '/')[1]
-                    urls[name] = '{0}/{1}.xml'.format(self._basic_url,name)
+                    urls[text] = '{0}/{1}.xml'.format(self._basic_url,name)
             else:
                 urls[parse_type] = '{0}.xml'.format(url)
 

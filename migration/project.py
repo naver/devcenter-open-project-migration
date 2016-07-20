@@ -1,8 +1,8 @@
 #!env python
 # -*- coding: utf-8 -*-
-
 from requests import request
 from .helper import making_soup
+from .milestone import Milestone
 
 
 class InvalidProjectError(Exception):
@@ -20,14 +20,16 @@ class Project:
     # 개발자 정보 O
     # 사용하는 vcs 종류 O
     # 위키 현황 O
-    #  마지막에 wiki로 내용 푸시하기
+    # 마일스톤 있는지
+    # 마지막에 wiki로 내용 푸시하기
     # 게시판 종류
     # 이슈 종류
     # 다운로드 종류
-    # 마일스톤 있는지
 
     def __init__(self, project_name, url):
         self._naver_api_url = url
+        self._project_url = '{0}/projects/{1}'.format(url, project_name)
+
         self.__check_valid_project(project_name)
 
         self._project_name = project_name
@@ -36,10 +38,14 @@ class Project:
         src_soup = making_soup(request("GET", self._project_url + '/src').content, 'html')
         self._vcs = 'svn' if src_soup.find('div', class_='code_contents') else 'git'
 
-        self.wiki_pages = self.__set_wiki_pages()
+        self._wiki_pages = self.__set_wiki_pages()
+        self._milestones = self.__set_milestones()
+
+    def __str__(self):
+        return self._project_name
 
     def __check_valid_project(self, pr_name):
-        self._project_url = '{0}/projects/{1}'.format(self._naver_api_url, pr_name)
+
         r = request("GET", self._project_url)
         self.__html = making_soup(r.content, 'html')
 
@@ -68,3 +74,16 @@ class Project:
             wiki_pages[a_tag['title']] = wiki_content
 
         return wiki_pages
+
+    def __set_milestones(self):
+        milestone_url = self._project_url + '/milestone.xml'
+        milestone_xml = request("GET", milestone_url).content
+        xml_soup = making_soup(milestone_xml, 'xml')
+        milestones_soup = xml_soup.findAll('milestone')
+
+        if not milestones_soup:
+            return None
+
+        milestones = [Milestone(milestone) for milestone in milestones_soup]
+
+        return milestones

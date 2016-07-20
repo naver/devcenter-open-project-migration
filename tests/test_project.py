@@ -1,6 +1,5 @@
 #!env python
 # -*- coding: utf-8 -*-
-import os
 import random
 import unittest
 
@@ -15,24 +14,6 @@ class TestProject(unittest.TestCase):
                 'chanraksmey', 'cheng900', 'darayong', 'manithnoun', 'rathapovkh',
                 'wkpark', '졸린눈이'],
         asd=['xowns24']
-    )
-
-    front_page = str()
-    license = str()
-
-    with open(os.path.join('wiki_repos', 'd2coding_FrontPage')) as f:
-        for line in f:
-            front_page += line
-
-    with open(os.path.join('wiki_repos', 'd2coding_OpenFontLicense')) as f:
-        for line in f:
-            license += line
-
-    wiki_pages = dict(
-        d2coding=dict(
-            FrontPage=front_page,
-            OpenFontLicense=license
-        )
     )
 
     naver_api_url = 'http://staging.dev.naver.com'
@@ -75,12 +56,23 @@ class TestProject(unittest.TestCase):
 
     def test_get_wiki(self):
         d2coding = Project('d2coding', self.naver_api_url)
-        self.maxDiff = None
+        asd = Project('asd', self.naver_api_url)
 
-        self.assertMultiLineEqual(d2coding.wiki_pages['FrontPage'],
-                                  self.wiki_pages['d2coding']['FrontPage'])
-        self.assertMultiLineEqual(d2coding.wiki_pages['OpenFontLicense'],
-                                  self.wiki_pages['d2coding']['OpenFontLicense'])
+        self.assertTrue(d2coding._wiki_pages)
+        self.assertFalse(asd._wiki_pages)
+
+    def test_milestone(self):
+        d2coding = Project('d2coding', self.naver_api_url)
+        asd = Project('asd', self.naver_api_url)
+        nforge = Project('nforge', self.naver_api_url)
+
+        self.assertTrue(nforge._milestones)
+
+        for milestone in nforge._milestones:
+            print(milestone)
+
+        self.assertFalse(d2coding._milestones)
+        self.assertFalse(asd._milestones)
 
 
 if __name__ == '__main__':

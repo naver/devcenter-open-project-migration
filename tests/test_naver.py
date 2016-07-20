@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import unittest
-from migration.naver import Naver
-from migration.github import Github
+
 from credentials import *
+from migration.github import Github
+from migration.naver import Naver
+
 
 class TestNaver(unittest.TestCase):
     gh = Github(GITHUB_ID,GITHUB_PW,'nforge-test')

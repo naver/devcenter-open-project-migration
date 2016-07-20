@@ -11,6 +11,7 @@ wiki_repos/
 control.py
 GITHUB_ACCESS_TOKEN
 credentials.py
+.idea/
 
 # Github provided
 # Byte-compiled / optimized / DLL files
@@ -103,3 +104,4 @@ ENV/
 
 # Rope project settings
 .ropeproject
+.idea/ 제거할 예정

@@ -13,7 +13,6 @@ setup(
         'Click',
         'BeautifulSoup4',
         'lxml',
-        'overrides',
         'tqdm',
         'github3.py',
         'requests'

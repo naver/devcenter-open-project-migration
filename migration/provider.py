@@ -1,7 +1,9 @@
+#!env python
 # -*- coding: utf-8 -*-
 from .helper import set_encoding
 
 set_encoding()
+
 
 class Provider:
     def __init__(self, username, password, repo_name):

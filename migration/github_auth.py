@@ -13,7 +13,7 @@ import requests
 BASIC_TOKEN_FILE_NAME = 'GITHUB_ACCESS_TOKEN'
 
 
-class UnvalidTokenError(Exception):
+class InvalidTokenError(Exception):
     def __init__(self, token):
         os.remove(BASIC_TOKEN_FILE_NAME)
         self.token = token
@@ -35,7 +35,7 @@ def confirm_token(token):
     if requests.request("GET", user_request_url).status_code is 200:
         return token
     else:
-        raise UnvalidTokenError(token)
+        raise InvalidTokenError(token)
 
 
 # ID/PW 입력

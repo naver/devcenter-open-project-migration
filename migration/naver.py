@@ -12,16 +12,19 @@ from time import sleep
 from requests import request
 from tqdm import tqdm
 from .helper import making_soup, set_encoding
-from .provider import Provider
 
 set_encoding()
 
 
-class Naver(Provider):
+class Naver:
     _api_url = 'http://staging.dev.naver.com'
 
-    def __init__(self, username, password, repo_name, gh):
-        Provider.__init__(self, username, password, repo_name)
+    def __init__(self, username, password, repo_name, gh, github_repo_name):
+        self._username = username
+        self._password = password
+        self._repo_name = repo_name
+        self._gh_repo_name = github_repo_name
+
         self._basic_url = '{0}/projects/{1}'.format(self._api_url, self._repo_name)
         self._urls = self.create_url()
         self._gh = gh

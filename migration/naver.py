@@ -31,12 +31,7 @@ class Naver(Provider):
             r = request("GET", url)
             artifacts = making_soup(r.content, 'xml')
 
-            try:
-                self.parsing_element(artifacts, board_type)
-            except Exception as e:
-                traceback.print_exc(file=sys.stdout)
-                self._gh.delete_repo()
-                exit()
+            self.parsing_element(artifacts, board_type)
 
     def parsing_element(self, artifacts, board_type):
         tag_name = 'artifact_id' if board_type is not 'download' else 'release_id'
@@ -97,8 +92,6 @@ class Naver(Provider):
                 release_id = migration_request.json()['id']
 
                 for fname, release_file in files.items():
-                    d = release_file.headers['content-disposition']
-
                     release = self._gh._repo.release(id=release_id)
                     release.upload_asset('application/zip', fname, release_file.content)
         except KeyError:

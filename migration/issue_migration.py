@@ -8,3 +8,4 @@ def issue_migration(**kwargs):
 
     print(threading.current_thread().name)
 
+    return True

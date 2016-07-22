@@ -2,19 +2,18 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
-import threading
 import time
 import webbrowser
 
 import click
 import migration.github_auth
-from .issue_migration import issue_migration
+
 from .helper import set_encoding
+from .issue_migration import issue_migration
 from .project import Project
-from .repo_migration import repo_migration
+from .repo_migration import repo_migration, pool
 
 set_encoding()
-print_lock = threading.Lock()
 
 cur_dir = os.getcwd()
 logging.basicConfig(filename=os.path.join('logs', time.strftime("%Y-%m-%d %H:%M:%S") + '.log'),
@@ -22,11 +21,9 @@ logging.basicConfig(filename=os.path.join('logs', time.strftime("%Y-%m-%d %H:%M:
 
 
 @click.command()
-@click.option('--github_repo', prompt=True, help='Name of github repo used for migration')
-@click.option('--naver_repo', prompt=True, help='Name of naver project to migrate')
-@click.option('--naver_id', prompt=True, help='NAVER username')
-@click.password_option('--naver_pw', help='NAVER password')
-def cli(github_repo, naver_repo, naver_id, naver_pw):
+@click.option('--github_repo', prompt=True, help='GitHub 레포지토리 이름')
+@click.option('--naver_repo', prompt=True, help='네이버 프로젝트 이름')
+def cli(github_repo, naver_repo):
     os.chdir(cur_dir)
     token = migration.github_auth.confirm_token_file()
     gh = migration.github_auth.create_session(token)
@@ -46,20 +43,23 @@ def cli(github_repo, naver_repo, naver_id, naver_pw):
     click.echo('프로젝트 파싱 중')
     project = Project(naver_repo, 'http://staging.dev.naver.com')
 
-    issue_thread = threading.Thread(target=issue_migration,
-                                    kwargs=dict(
+    issue_result = pool.apply_async(issue_migration,
+                                    kwds=dict(
                                         project=project
                                     ))
-    repo_thread = threading.Thread(target=repo_migration,
-                                   kwargs=dict(project=project,
-                                               github_session=gh,
-                                               github_repository=repo,
-                                               username=naver_id,
-                                               password=naver_pw)
+    repo_result = pool.apply_async(repo_migration,
+                                   kwds=dict(project=project, github_session=gh, github_repository=repo)
                                    )
 
-    issue_thread.start()
-    repo_thread.start()
+    issue_migration_success = issue_result.get()
+    repo_migration_success = repo_result.get()
+
+    if not issue_migration_success:
+        click.echo('Issue migration failed...')
+
+    if not repo_migration_success:
+        click.echo('Repo migration failed...')
+
 
 if __name__ == '__main__':
     cli()

@@ -3,8 +3,6 @@ boards/
 *.xml
 venv/
 logs/
-config.py
-config.py.*
 *.zip
 wiki_repos/
 *output/

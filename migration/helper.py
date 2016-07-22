@@ -26,7 +26,7 @@ def set_encoding():
 
 # Version name 을 어떻게든 얻어보고자 고군분투하는 함수
 def get_version(repo_name, title):
-    # temp = str.upper(title).replace(str.upper(self._repo_name),'')
+    # temp = str.upper(title).replace(str.upper(self.,  _repo_name),'')
     temp = title.upper().replace(repo_name.upper(), '')
     try:
         result = int(temp)

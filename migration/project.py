@@ -46,11 +46,6 @@ class Project:
 
         self.urls = self.create_url()
 
-        modified_urls = self.urls
-        self.downloads, self.downloads_files = self.__get_downloads(modified_urls['download'])
-
-        del modified_urls['download']
-
         # self.issues = self.__get_issues_json(modified_urls)
 
     def __str__(self):
@@ -123,55 +118,3 @@ class Project:
                 urls[parse_type] = '{0}.xml'.format(url)
 
         return urls
-
-    def __get_downloads(self, url):
-        board_type = 'download'
-        tag_name = 'release_id'
-        board_xml = request("GET", url)
-        soup = making_soup(board_xml.content, 'xml')
-        release_id_list = soup.findAll(tag_name)
-        downloads = list()
-        files = list()
-
-        for tag in tqdm(release_id_list):
-            release_id = tag.get_text()
-            request_url = '{0}/{1}/{2}.xml'.format(self.project_url, board_type, release_id)
-
-            each_xml = request("GET", request_url).content
-
-            if not each_xml:
-                log_msg = 'BLANK_XML_BUG NAME: {0}, ID: {1}, TYPE: {2}'.format(self.project_name,
-                                                                               release_id, board_type)
-                logging.debug(log_msg)
-                continue
-
-            dl_soup = making_soup(each_xml, 'xml')
-            name = dl_soup.find('name').get_text()
-            description = dl_soup.find('description').get_text()
-            version = str(get_version(self.project_name, name))
-
-            for file in dl_soup.files.findAll('file'):
-                file_id = file.find('id').get_text()
-                file_name = file.find('name').get_text()
-                file_ext = file_name.split('.')[-1]
-                file_down_url = '{0}/frs/download.php/{1}/{2}'.format(self.api_url,
-                                                                      file_id, file_name)
-
-                file_raw = request('GET', file_down_url, stream=True).content
-                files.append(dict(
-                    id_=file_id,
-                    name=file_name,
-                    ext=file_ext,
-                    raw=file_raw
-                ))
-
-                downloads.append(json.dumps({
-                    "tag_name": version,
-                    "target_commitish": "master",
-                    "name": name,
-                    "body": description,
-                    "prerelease": False,
-                    "draft": False
-                }))
-
-        return downloads, files

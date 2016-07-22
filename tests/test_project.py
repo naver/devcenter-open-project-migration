@@ -36,6 +36,7 @@ class TestProject(unittest.TestCase):
 
         self.assertTrue(isinstance(test_project, Project))
         self.assertEqual(test_project.project_name, self.project_name)
+        self.assertTrue(type(str(test_project) is str))
 
     def test_invalid_project(self):
         with self.assertRaises(InvalidProjectError):

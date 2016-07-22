@@ -43,13 +43,10 @@ def cli(github_repo, naver_repo):
     click.echo('프로젝트 파싱 중')
     project = Project(naver_repo, 'http://staging.dev.naver.com')
 
-    issue_result = pool.apply_async(issue_migration,
-                                    kwds=dict(
-                                        project=project
-                                    ))
-    repo_result = pool.apply_async(repo_migration,
-                                   kwds=dict(project=project, github_session=gh, github_repository=repo)
-                                   )
+    param = dict(project=project, github_session=gh, github_repository=repo)
+
+    issue_result = pool.apply_async(issue_migration, kwds=param)
+    repo_result = pool.apply_async(repo_migration, kwds=param)
 
     issue_migration_success = issue_result.get()
     repo_migration_success = repo_result.get()

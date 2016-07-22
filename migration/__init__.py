@@ -8,4 +8,13 @@
     모듈. https://developer.github.com/v3/ 를 기반으로 제작했다.
 """
 
-__version__ = '0.0.1-dev'
+__version__ = '0.0.11-dev'
+
+"""
+TODO:
+1. 마일스톤을 추가해야함
+2. 위키 파일들에 확장자 붙여서 올리기
+3. 코드 리팩토링
+4. 프로젝트에 쿠키 추가할 수 있게 해야함
+5. github enterprise 지원
+"""

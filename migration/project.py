@@ -1,11 +1,9 @@
 #!env python
 # -*- coding: utf-8 -*-
-import json
-import logging
 
 from requests import request
-from tqdm import tqdm
-from .helper import making_soup, get_version
+
+from .helper import making_soup
 from .milestone import Milestone
 
 
@@ -77,7 +75,7 @@ class Project:
         for a_tag in project_news_item[2].findAll('a'):
             url = self.api_url + a_tag['href'] + '?action=edit'
             wiki_request = request("GET", url).content
-            wiki_content = making_soup(wiki_request, 'html').textarea
+            wiki_content = making_soup(wiki_request, 'html').textarea.get_text()
             wiki_pages[a_tag['title']] = wiki_content
 
         return wiki_pages

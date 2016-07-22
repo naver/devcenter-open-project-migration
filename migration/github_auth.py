@@ -9,8 +9,7 @@ import random
 import click
 import github3
 import requests
-
-BASIC_TOKEN_FILE_NAME = 'GITHUB_ACCESS_TOKEN'
+from config import BASIC_TOKEN_FILE_NAME
 
 
 class InvalidTokenError(Exception):

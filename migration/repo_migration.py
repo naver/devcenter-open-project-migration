@@ -3,19 +3,17 @@
 import json
 import logging
 import os
-import threading
 import time
 from multiprocessing.pool import ThreadPool
 from urllib.parse import urlparse
 
 import click
 import requests
+from config import WAIT_TIME, WIKI_DIR_NAME, BASIC_TOKEN_FILE_NAME, PROCESS
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from tqdm import tqdm
 
-from .github_auth import BASIC_TOKEN_FILE_NAME
 from .helper import making_soup, get_version
-from config import PROCESS, WAIT_TIME
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -42,10 +40,6 @@ def get_downloads(**kwargs):
     url = project.urls[board_type]
     project_name = str(project)
     project_url = project.project_url
-
-    thread_msg = '{0}가 {1}의 다운로드 파싱 시작'.format(threading.current_thread().name, project_name)
-    logging.debug(thread_msg)
-    print(thread_msg)
 
     # 다운로드 게시판 XML 요청
     board_xml = requests.request("GET", url)
@@ -102,23 +96,36 @@ def get_downloads(**kwargs):
 
 def repo_migration(**kwargs):
     project = kwargs.get('project')
+    project_name = str(project)
 
-    get_download_result = pool.apply_async(get_downloads, kwds=dict(project=project))
+    # wiki_repos 만들어서 위키 파일 만들어놓기
+    wiki_dir_path = os.path.join(WIKI_DIR_NAME, project_name)
+    if not os.path.exists(os.path.join(WIKI_DIR_NAME, project_name)):
+        os.makedirs(os.path.join(wiki_dir_path, 'attachFile'))
 
-    downloads, files = get_download_result.get()
+    for title, file in project.wiki_pages.items():
+        with open(os.path.join(wiki_dir_path, title), 'w') as f:
+            f.write(file)
 
-    thread_msg = '{0}가 {1}의 소스 코드 마이그레이션 시작'.format(threading.current_thread().name, project.project_name)
-    logging.debug(thread_msg)
+    downloads, files = get_downloads(project=project)
 
     gh = kwargs.get('github_session')
     repo = kwargs.get('github_repository')
+
+    # collaborator 추가하기
+    for username in project.developers:
+        try:
+            repo.add_collaborator(username)
+        except Exception as e:
+            print(e)
+            print('그런 유저 없습니다')
 
     base_url = '{0}/repos/{1}/{2}/'.format(gh._github_url, gh.user().login, repo.name)
 
     with open(BASIC_TOKEN_FILE_NAME) as f:
         token = f.read()
 
-    netloc = urlparse(project.api_url)[1]
+    netloc = urlparse(project.api_url).netloc
 
     # staging. 으로 시작하면 migration 이 되지 않음..
     if project.vcs is 'git':
@@ -126,15 +133,14 @@ def repo_migration(**kwargs):
         password = click.prompt('NAVER 비밀번호를 입력하세요', hide_input=True, confirmation_prompt=True)
         vcs = 'git'
         # git 은 반드시 https 프로토콜로 넘기기!!
-        url = 'https://{0}@{3}/{1}/{2}.{1}'.format(username, project.vcs, project.project_name,
-                                                  netloc.replace('staging.', ''))
+        url = 'https://{0}@{3}/{1}/{2}.{1}'.format(username, project.vcs, project_name, netloc.replace('staging.', ''))
 
         print(url)
     else:
         username = 'anonsvn'
         password = 'anonsvn'
         vcs = 'subversion'
-        url = 'https://{2}/{0}/{1}'.format(project.vcs, project.project_name,
+        url = 'https://{2}/{0}/{1}'.format(project.vcs, project_name,
                                            netloc.replace('staging.', ''))
 
     migration_request_url = base_url + 'import'
@@ -167,7 +173,7 @@ def repo_migration(**kwargs):
         repo_migration_status = True if import_confirm.json()['status'] == 'complete' \
             else False
 
-        print("{0}초 후 다시 완료 여부를 확인 합니다...".format(WAIT_TIME))
+        print("{0}초 후 다시 소스코드 저장소 마이그레이션 여부를 확인 합니다...".format(WAIT_TIME))
         time.sleep(WAIT_TIME)
 
     for download, file in zip(downloads, files):

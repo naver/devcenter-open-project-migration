@@ -1,4 +1,3 @@
-#!env python
 # -*- coding: utf-8 -*-
 
 from requests import request
@@ -27,9 +26,19 @@ class Project:
     # 이슈 종류
     # 다운로드 종류
 
-    def __init__(self, project_name, url):
+    def __init__(self, project_name, url, cookies):
         self.api_url = url
         self.project_url = '{0}/projects/{1}'.format(url, project_name)
+
+        self.cookies = dict()
+
+        if cookies:
+            with open('COOKIES') as f:
+                cookie_list = [cookie for cookie in f]
+
+            for cookie in cookie_list:
+                cookie_split = cookie.split(' ')
+                self.cookies[cookie_split[0]] = cookie_split[1].replace('\n', '')
 
         self.__check_valid_project(project_name)
 
@@ -44,14 +53,11 @@ class Project:
 
         self.urls = self.create_url()
 
-        # self.issues = self.__get_issues_json(modified_urls)
-
     def __str__(self):
         return self.project_name
 
     def __check_valid_project(self, pr_name):
-
-        r = request("GET", self.project_url)
+        r = request("GET", self.project_url, cookies=self.cookies)
         self.__html = making_soup(r.content, 'html')
 
         title = self.__html.title.get_text()
@@ -74,12 +80,12 @@ class Project:
 
         for a_tag in project_news_item[2].findAll('a'):
             url = self.api_url + a_tag['href'] + '?action=edit'
-            wiki_request = request("GET", url).content
+            wiki_request = request("GET", url, cookies=self.cookies).content
 
             try:
                 wiki_content = making_soup(wiki_request, 'html').textarea.get_text()
             except AttributeError:
-                wiki_request = request("GET", self.api_url + a_tag['href']).content
+                wiki_request = request("GET", self.api_url + a_tag['href'], cookies=self.cookies).content
                 wiki_content = making_soup(wiki_request, 'html').find('div', id='mycontent')
 
             wiki_pages[a_tag['title']] = str(wiki_content)
@@ -88,7 +94,7 @@ class Project:
 
     def __set_milestones(self):
         milestone_url = self.project_url + '/milestone.xml'
-        milestone_xml = request("GET", milestone_url).content
+        milestone_xml = request("GET", milestone_url, cookies=self.cookies).content
         xml_soup = making_soup(milestone_xml, 'xml')
         milestones_soup = xml_soup.findAll('milestone')
 
@@ -104,7 +110,7 @@ class Project:
         for parse_type in types:
             # 게시판 및 이슈 목록
             url = '{0}/{1}'.format(self.project_url, parse_type)
-            r = request("GET", url)
+            r = request("GET", url, cookies=self.cookies)
 
             # HTML 파싱
             soup = making_soup(r.content, 'html')

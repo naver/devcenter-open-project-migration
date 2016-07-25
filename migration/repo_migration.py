@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# !env python
 import json
 import logging
 import os
@@ -71,8 +70,7 @@ def get_downloads(**kwargs):
             file_id = file.find('id').get_text()
             file_name = file.find('name').get_text()
             file_ext = file_name.split('.')[-1]
-            file_down_url = '{0}/frs/download.php/{1}/{2}'.format(project.api_url,
-                                                                  file_id, file_name)
+            file_down_url = '{0}/frs/download.php/{1}/{2}'.format(project.api_url, file_id, file_name)
 
             file_raw = requests.request('GET', file_down_url, stream=True).content
             files.append(dict(
@@ -111,6 +109,8 @@ def repo_migration(**kwargs):
     downloads, files = get_downloads(project=project)
 
     gh = kwargs.get('github_session')
+    github_api_url = gh.__dict__['_session'].__dict__['base_url']
+
     repo = kwargs.get('github_repository')
 
     # collaborator 추가하기
@@ -121,7 +121,7 @@ def repo_migration(**kwargs):
             print(e)
             print('그런 유저 없습니다')
 
-    base_url = '{0}/repos/{1}/{2}/'.format(gh._github_url, gh.user().login, repo.name)
+    base_url = '{0}/repos/{1}/{2}/'.format(github_api_url, gh.user().login, repo.name)
 
     with open(BASIC_TOKEN_FILE_NAME) as f:
         token = f.read()

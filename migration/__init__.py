@@ -1,4 +1,3 @@
-#!env python
 # -*- coding: utf-8 -*-
 """
     migration
@@ -12,9 +11,12 @@ __version__ = '0.0.11-dev'
 
 """
 TODO:
-1. 마일스톤을 추가해야함
+1. 마일스톤을 추가해야함 (O)
 2. 위키 파일들에 확장자 붙여서 올리기 (O)
-3. 코드 리팩토링
-4. 프로젝트에 쿠키 추가할 수 있게 해야함
-5. github enterprise 지원
+3. 코드 리팩토링 (O)
+4. 프로젝트에 쿠키 추가할 수 있게 해야함 (O)
+5. github enterprise 지원 (O)
+
+7/26
+devcode 에서 oss 로 repo 마이그레이션 동작하도록 하기
 """

@@ -10,6 +10,7 @@ control.py
 GITHUB_ACCESS_TOKEN
 credentials.py
 .idea/
+COOKIES
 
 # Github provided
 # Byte-compiled / optimized / DLL files

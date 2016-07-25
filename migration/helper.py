@@ -1,4 +1,3 @@
-#!env python
 # -*- coding: utf-8 -*-
 import platform
 import random

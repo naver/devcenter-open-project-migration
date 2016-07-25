@@ -1,4 +1,3 @@
-#!env python
 # -*- coding: utf-8 -*-
 import json
 import logging
@@ -39,6 +38,7 @@ def upload_asset_by_git(user_name, project_name, repo_name, token):
 
 def file_download(attach_path, url, file_name, artifact_id, file_id, **kwargs):
     comment_id = kwargs.get('comment_id')
+    cookies = kwargs.get('cookies')
 
     if not comment_id:
         down_path = '{0}/{1}/{2}/'.format(attach_path,
@@ -53,7 +53,7 @@ def file_download(attach_path, url, file_name, artifact_id, file_id, **kwargs):
     full_path = down_path + file_name
 
     if not os.path.exists(full_path):
-        downloaded = requests.request("GET", url, stream=True)
+        downloaded = requests.request("GET", url, stream=True, cookies=cookies)
 
         if not os.path.exists(down_path):
             os.makedirs(down_path)
@@ -68,12 +68,16 @@ def file_download(attach_path, url, file_name, artifact_id, file_id, **kwargs):
     return status_code
 
 
-def milestone_migration(project, gh, repo_name, token):
+def milestone_migration(project, api_url, gh, repo_name, token):
     milestones = project.milestones
-    milestone_post_url = '{0}/repos/{1}/{2}/milestones?access_token={3}'.format(gh._github_url, gh.user().login,
+
+    if milestones:
+        milestone_post_url = '{0}/repos/{1}/{2}/milestones?access_token={3}'.format(api_url, gh.user().login,
                                                                                 repo_name, token)
-    for milestone in milestones:
-        requests.request("POST", milestone_post_url, data=str(milestone))
+        for milestone in milestones:
+            requests.request("POST", milestone_post_url, data=str(milestone), cookies=project.cookies)
+    else:
+        click.echo('마일스톤이 없는 프로젝트입니다')
 
 
 def get_attach_links(attachments, download_path, api_url, github_username, repo_name, artifact_id, github_url):
@@ -164,7 +168,7 @@ def issue_migration(**kwargs):
     project = kwargs.get('project')
     gh = kwargs.get('github_session')
     repo = kwargs.get('github_repository')
-    github_api_url = gh._github_url
+    github_api_url = gh.__dict__['_session'].__dict__['base_url']
 
     with open(BASIC_TOKEN_FILE_NAME) as f:
         token = f.read()
@@ -190,38 +194,43 @@ def issue_migration(**kwargs):
         else github_parse_url.netloc
 
     # 마이그레이션 마이그레이션
-    milestone_migration(project, gh, repo.name, token)
+    milestone_migration(project, github_api_url, gh, repo.name, token)
 
     # 이슈 마이그레이션
     for board_type, url in issue_urls.items():
-        issue_board_r = requests.request("GET", url)
+        issue_board_r = requests.request("GET", url, cookies=project.cookies)
         issue_board_xml = making_soup(issue_board_r.content, 'xml')
         tag_name = 'artifact_id'
         artifacts = issue_board_xml.findAll(tag_name)
+        date_type = "%Y/%m/%d %H:%M:%S"
 
         for id_tag in tqdm(artifacts):
             # 본문 파싱
             artifact_id = id_tag.get_text()
             request_url = '{0}/{1}/{2}.xml'.format(project.project_url, board_type, artifact_id)
-            artifact_r = requests.request("GET", request_url)
+            artifact_r = requests.request("GET", request_url, cookies=project.cookies)
 
             if not artifact_r.content:
-                log_msg = 'BLANK_XML__Repo: {0}, Id: {1}, Type: {2}'.format(project_name, artifact_id, board_type)
+                log_msg = 'BLANK_XML Repo: {0}, Id: {1}, Type: {2}'.format(project_name, artifact_id, board_type)
                 logging.error(log_msg)
                 continue
 
             parsed = making_soup(artifact_r.content, 'xml')
 
-            author = parsed.author.get_text().replace(' ', '')
-            assignee = parsed.assignee.get_text().replace(' ', '')
-            title = parsed.title.get_text()
-            body = parsed.description.get_text()
-            open_date_str = parsed.open_date.get_text()
+            try:
+                author = parsed.find('author').get_text().replace(' ', '')
+                assignee = parsed.find('assignee').get_text().replace(' ', '')
+                title = parsed.find('title').get_text()
+                body = parsed.find('description').get_text()
+                open_date_str = parsed.find('open_date').get_text()
+                close_date = parsed.find('close_date').get_text()
+            except Exception as e:
+                print(e)
+                log_msg = 'Parsing Failed Repo: {0}, Id: {1}, Type: {2}'.format(project_name, artifact_id, board_type)
+                logging.error(log_msg)
+                continue
 
-            date_type = "%Y/%m/%d %H:%M:%S"
             open_date = time.strftime(date_type, time.localtime(int(open_date_str)))
-
-            close_date = parsed.find('close_date').get_text()
             closed = False if close_date == '0' else True
 
             # 첨부파일 파싱

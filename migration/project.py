@@ -75,8 +75,14 @@ class Project:
         for a_tag in project_news_item[2].findAll('a'):
             url = self.api_url + a_tag['href'] + '?action=edit'
             wiki_request = request("GET", url).content
-            wiki_content = making_soup(wiki_request, 'html').textarea.get_text()
-            wiki_pages[a_tag['title']] = wiki_content
+
+            try:
+                wiki_content = making_soup(wiki_request, 'html').textarea.get_text()
+            except AttributeError:
+                wiki_request = request("GET", self.api_url + a_tag['href']).content
+                wiki_content = making_soup(wiki_request, 'html').find('div', id='mycontent')
+
+            wiki_pages[a_tag['title']] = str(wiki_content)
 
         return wiki_pages
 

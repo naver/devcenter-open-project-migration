@@ -95,6 +95,7 @@ def get_downloads(**kwargs):
 
 
 def repo_migration(**kwargs):
+    click.echo('저장소 마이그레이션 중...')
     project = kwargs.get('project')
     project_name = str(project)
 
@@ -104,7 +105,7 @@ def repo_migration(**kwargs):
         os.makedirs(os.path.join(wiki_dir_path, 'attachFile'))
 
     for title, file in project.wiki_pages.items():
-        with open(os.path.join(wiki_dir_path, title), 'w') as f:
+        with open(os.path.join(wiki_dir_path, title) + '.md', 'w') as f:
             f.write(file)
 
     downloads, files = get_downloads(project=project)
@@ -167,13 +168,14 @@ def repo_migration(**kwargs):
     else:
         raise RepoMigrationError(r.json())
 
+    click.echo("{0}초 마다 소스코드 저장소 마이그레이션 여부를 확인 합니다...".format(WAIT_TIME))
+
     while not repo_migration_status:
         import_confirm = requests.request('GET', migration_request_url, headers=import_headers)
 
         repo_migration_status = True if import_confirm.json()['status'] == 'complete' \
             else False
 
-        print("{0}초 후 다시 소스코드 저장소 마이그레이션 여부를 확인 합니다...".format(WAIT_TIME))
         time.sleep(WAIT_TIME)
 
     for download, file in zip(downloads, files):

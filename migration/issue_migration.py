@@ -7,6 +7,7 @@ import subprocess
 import time
 from urllib.parse import urlparse
 
+import click
 import requests
 from config import WIKI_DIR_NAME, BASIC_TOKEN_FILE_NAME
 from tqdm import tqdm
@@ -15,6 +16,7 @@ from .helper import making_soup
 
 
 def upload_asset_by_git(user_name, project_name, repo_name, token):
+    click.echo('첨부파일 업로드를 시작합니다')
     push_wiki_git = 'https://{0}:{1}@github.com/{0}/{2}.wiki.git'.format(user_name, token, repo_name)
 
     curdir = os.getcwd()
@@ -67,6 +69,7 @@ def file_download(attach_path, url, file_name, artifact_id, file_id, **kwargs):
 
 
 def issue_migration(**kwargs):
+    click.echo('이슈 마이그레이션 중...')
     project = kwargs.get('project')
     gh = kwargs.get('github_session')
     repo = kwargs.get('github_repository')
@@ -103,7 +106,7 @@ def issue_migration(**kwargs):
 
             if not artifact_r.content:
                 log_msg = 'BLANK_XML__Repo: {0}, Id: {1}, Type: {2}'.format(project_name, artifact_id, board_type)
-                logging.debug(log_msg)
+                logging.error(log_msg)
                 continue
 
             parsed = making_soup(artifact_r.content, 'xml')

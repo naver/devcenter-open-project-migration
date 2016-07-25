@@ -17,7 +17,7 @@ set_encoding()
 
 cur_dir = os.getcwd()
 logging.basicConfig(filename=os.path.join('logs', time.strftime("%Y-%m-%d %H:%M:%S") + '.log'),
-                    level=logging.DEBUG)
+                    level=logging.ERROR)
 
 
 @click.command()
@@ -33,11 +33,13 @@ def cli(github_repo, naver_repo):
     if not repo:
         repo = gh.create_repo(github_repo)
 
+    click.echo('GitHub 저장소 생성 완료...')
+
     # 위키 페이지를 만들 수 있도록 자동으로 웹 브라우저를 열어줌
     wiki_create_page_url = 'https://github.com/{0}/{1}/wiki/_new'.format(github_id, github_repo)
 
     if webbrowser.open(wiki_create_page_url):
-        click.echo('Save Page 버튼을 눌러주세요!')
+        click.echo('첫 위키 페이지를 만들기 위해 ' + click.style('Save Page', fg='green') + ' 버튼을 눌러주세요!')
 
     # 올바른 프로젝트인지 검증
     click.echo('프로젝트 파싱 중')
@@ -47,7 +49,6 @@ def cli(github_repo, naver_repo):
 
     issue_result = pool.apply_async(issue_migration, kwds=param)
     repo_result = pool.apply_async(repo_migration, kwds=param)
-
     issue_migration_success = issue_result.get()
     repo_migration_success = repo_result.get()
 

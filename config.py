@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # 프로세스 사용 개수
 PROCESS = 8
 

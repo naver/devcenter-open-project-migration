@@ -2,9 +2,9 @@
 import logging
 import os
 import subprocess
+import sys
 import time
 import webbrowser
-from urllib.parse import urlparse
 
 import click
 import migration.github_auth
@@ -14,7 +14,11 @@ from .issue_migration import issue_migration
 from .project import Project
 from .repo_migration import repo_migration, pool
 
-set_encoding()
+if sys.version_info.major is 2:
+    set_encoding()
+    from urlparse import urlparse
+else:
+    from urllib.parse import urlparse
 
 cur_dir = os.getcwd()
 logging.basicConfig(filename=os.path.join('logs', time.strftime("%Y-%m-%d %H:%M:%S") + '.log'), level=logging.ERROR)
@@ -32,7 +36,7 @@ def upload_asset_by_git(user_name, project_name, repo_name, token, github_url):
         ['git', 'add', '--all'],
         ['git', 'commit', '-m', 'all asset commit'],
         ['git', 'remote', 'add', 'origin', push_wiki_git],
-        ['git', 'pull', push_wiki_git, 'master'],
+        ['git', 'pull', '-f', push_wiki_git, 'master'],
         ['git', 'push', '-f', push_wiki_git, 'master']
     ]
 
@@ -47,14 +51,16 @@ def upload_asset_by_git(user_name, project_name, repo_name, token, github_url):
 @click.option('--project_name', prompt=True, help='NFORGE 프로젝트 이름')
 @click.option('--api_url', prompt=True, help='NFORGE API URL')
 @click.option('--cookies', help='쿠키 이용 여부', is_flag=True, default=False)
-@click.option('--enterprise', help='GitHub 엔터프라이즈 여부', is_flag=True, default=False)
-def cli(github_repo, project_name, api_url, enterprise, cookies):
+@click.option('--enterprise_url', help='GitHub 엔터프라이즈 URL', default=None)
+@click.option('--issue_only', help='이슈만 마이그레이션 여부', is_flag=True, default=False)
+def cli(github_repo, project_name, api_url, enterprise_url, cookies, issue_only):
     os.chdir(cur_dir)
-    token_file_name = 'ENTERPRISE_ACCESS_TOKEN' if enterprise is True else 'GITHUB_ACCESS_TOKEN'
-    enterprise_url = '' if not enterprise else click.prompt('GitHub Enterprise URL을 입력하세요', type=str)
 
-    token = migration.github_auth.confirm_token_file(enterprise, token_file_name)
+    token_file_name = 'ENTERPRISE_ACCESS_TOKEN' if enterprise_url is True else 'GITHUB_ACCESS_TOKEN'
+
+    token = migration.github_auth.confirm_token_file(token_file_name, enterprise_url)
     gh = migration.github_auth.create_session(token, enterprise_url)
+
     github_url = 'https://github.com' if not enterprise_url else enterprise_url
     wiki_create_page_url = '{2}/{0}/{1}/wiki/_new'.format(gh.user().login, github_repo, github_url)
 
@@ -78,7 +84,7 @@ def cli(github_repo, project_name, api_url, enterprise, cookies):
 
     issue_result = pool.apply_async(issue_migration, kwds=param)
 
-    if not enterprise:
+    if not issue_only or enterprise_url:
         repo_result = pool.apply_async(repo_migration, kwds=param)
         repo_migration_success = repo_result.get()
 

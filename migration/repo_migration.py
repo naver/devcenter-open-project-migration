@@ -2,9 +2,9 @@
 import json
 import logging
 import os
+import sys
 import time
 from multiprocessing.pool import ThreadPool
-from urllib.parse import urlparse
 
 import click
 import requests
@@ -12,7 +12,13 @@ from config import WAIT_TIME, WIKI_DIR_NAME, PROCESS
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from tqdm import tqdm
 
-from .helper import making_soup, get_version
+from .helper import making_soup, get_version, set_encoding
+
+if sys.version_info.major is 2:
+    set_encoding()
+    from urlparse import urlparse
+else:
+    from urllib.parse import urlparse
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 

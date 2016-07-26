@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import platform
 import random
 import string
 import sys
@@ -18,9 +17,8 @@ def get_random_string(N):
 # python 2.* 버전일 경우 인코딩을 강제로 정해줘야 함
 # 각 파일마다 동작시킬 것
 def set_encoding():
-    if platform.python_version()[0] is '2':
-        reload(sys)
-        sys.setdefaultencoding('utf-8')
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
 
 # Version name 을 어떻게든 얻어보고자 고군분투하는 함수

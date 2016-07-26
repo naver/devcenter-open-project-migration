@@ -2,15 +2,21 @@
 import json
 import logging
 import os
+import sys
 import time
-from urllib.parse import urlparse
 
 import click
 import requests
 from config import WIKI_DIR_NAME
 from tqdm import tqdm
 
-from .helper import making_soup
+from .helper import making_soup, set_encoding
+
+if sys.version_info.major is 2:
+    set_encoding()
+    from urlparse import urlparse
+else:
+    from urllib.parse import urlparse
 
 
 def file_download(attach_path, url, file_name, artifact_id, file_id, **kwargs):

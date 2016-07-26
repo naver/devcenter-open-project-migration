@@ -18,5 +18,8 @@ TODO:
 5. github enterprise 지원 (O)
 
 7/26
+TODO:
 devcode 에서 oss 로 repo 마이그레이션 동작하도록 하기
+upload_asset_by_git enterprise 지원하도록 하기
+위의 2 기능 테스트 해보기
 """

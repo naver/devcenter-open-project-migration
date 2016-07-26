@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import click
 import requests
-from config import WAIT_TIME, WIKI_DIR_NAME, BASIC_TOKEN_FILE_NAME, PROCESS
+from config import WAIT_TIME, WIKI_DIR_NAME, PROCESS
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from tqdm import tqdm
 
@@ -22,7 +22,6 @@ pool = ThreadPool(processes=PROCESS)
 
 class RepoMigrationError(Exception):
     def __init__(self, json_text):
-        os.remove(BASIC_TOKEN_FILE_NAME)
         self.json = json_text
 
     def __str__(self):
@@ -41,7 +40,7 @@ def get_downloads(**kwargs):
     project_url = project.project_url
 
     # 다운로드 게시판 XML 요청
-    board_xml = requests.request("GET", url)
+    board_xml = requests.request("GET", url, cookies=project.cookies)
     soup = making_soup(board_xml.content, 'xml')
     release_id_list = soup.findAll(tag_name)
 
@@ -52,7 +51,7 @@ def get_downloads(**kwargs):
         release_id = tag.get_text()
         request_url = '{0}/{1}/{2}.xml'.format(project_url, board_type, release_id)
 
-        each_xml = requests.request("GET", request_url).content
+        each_xml = requests.request("GET", request_url, cookies=project.cookies).content
 
         if not each_xml:
             log_msg = 'BLANK_XML_BUG NAME: {0}, ID: {1}, TYPE: {2}'.format(project_name,
@@ -72,7 +71,7 @@ def get_downloads(**kwargs):
             file_ext = file_name.split('.')[-1]
             file_down_url = '{0}/frs/download.php/{1}/{2}'.format(project.api_url, file_id, file_name)
 
-            file_raw = requests.request('GET', file_down_url, stream=True).content
+            file_raw = requests.request('GET', file_down_url, stream=True, cookies=project.cookies).content
             files.append(dict(
                 id_=file_id,
                 name=file_name,
@@ -95,6 +94,7 @@ def get_downloads(**kwargs):
 def repo_migration(**kwargs):
     click.echo('저장소 마이그레이션 중...')
     project = kwargs.get('project')
+    token_file_name = kwargs.get('token_file_name')
     project_name = str(project)
 
     # wiki_repos 만들어서 위키 파일 만들어놓기
@@ -110,7 +110,6 @@ def repo_migration(**kwargs):
 
     gh = kwargs.get('github_session')
     github_api_url = gh.__dict__['_session'].__dict__['base_url']
-
     repo = kwargs.get('github_repository')
 
     # collaborator 추가하기
@@ -121,9 +120,7 @@ def repo_migration(**kwargs):
             print(e)
             print('그런 유저 없습니다')
 
-    base_url = '{0}/repos/{1}/{2}/'.format(github_api_url, gh.user().login, repo.name)
-
-    with open(BASIC_TOKEN_FILE_NAME) as f:
+    with open(token_file_name) as f:
         token = f.read()
 
     netloc = urlparse(project.api_url).netloc
@@ -135,8 +132,6 @@ def repo_migration(**kwargs):
         vcs = 'git'
         # git 은 반드시 https 프로토콜로 넘기기!!
         url = 'https://{0}@{3}/{1}/{2}.{1}'.format(username, project.vcs, project_name, netloc.replace('staging.', ''))
-
-        print(url)
     else:
         username = 'anonsvn'
         password = 'anonsvn'
@@ -144,7 +139,8 @@ def repo_migration(**kwargs):
         url = 'https://{2}/{0}/{1}'.format(project.vcs, project_name,
                                            netloc.replace('staging.', ''))
 
-    migration_request_url = base_url + 'import'
+    base_url = '{0}/repos/{1}/{2}'.format(github_api_url, gh.user().login, repo.name)
+    migration_request_url = base_url + '/import'
 
     import_headers = {
             'Accept': "application/vnd.github.barred-rock-preview",

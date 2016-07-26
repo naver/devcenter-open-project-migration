@@ -8,12 +8,10 @@ import random
 import click
 import github3
 import requests
-from config import BASIC_TOKEN_FILE_NAME
 
 
 class InvalidTokenError(Exception):
     def __init__(self, token):
-        os.remove(BASIC_TOKEN_FILE_NAME)
         self.token = token
 
     def __str__(self):
@@ -41,7 +39,7 @@ def confirm_token(token):
 
 # ID/PW 입력
 # T 엑세스 토큰 만들고 검증 / F 입력 반복
-def input_credentials(enterprise, github_id=None, github_pw=None):
+def input_credentials(enterprise, file_name, github_id=None, github_pw=None):
     auth = None
 
     if not github_id:
@@ -64,19 +62,19 @@ def input_credentials(enterprise, github_id=None, github_pw=None):
     except github3.models.GitHubError:
         click.echo('잘못된 아이디와 비밀번호 입니다!!')
 
-    write_token_to_file(enterprise, auth.token)
+    write_token_to_file(enterprise, auth.token, file_name)
 
 
-def write_token_to_file(enterprise, token, file_name=BASIC_TOKEN_FILE_NAME):
+def write_token_to_file(enterprise, token, file_name):
     with open(file_name, 'w') as f:
         f.write(token)
 
-    return confirm_token_file(enterprise)
+    return confirm_token_file(enterprise, file_name)
 
 
 # GITHUB_ACCESS_TOKEN 파일이 현재 디렉토리에 있는지 검증
 # T 토큰을 검증 / F ID/PW 입력
-def confirm_token_file(enterprise, file_name=BASIC_TOKEN_FILE_NAME):
+def confirm_token_file(enterprise, file_name):
     if os.path.exists(os.path.join(file_name)):
         with open(file_name) as f:
             token = f.read()
@@ -92,6 +90,6 @@ def confirm_token_file(enterprise, file_name=BASIC_TOKEN_FILE_NAME):
             try:
                 confirm_token(token)
             except InvalidTokenError:
-                input_credentials(enterprise)
+                input_credentials(enterprise, file_name)
         else:
-            write_token_to_file(enterprise, token)
+            write_token_to_file(enterprise, token, file_name)

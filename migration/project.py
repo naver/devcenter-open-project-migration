@@ -45,7 +45,7 @@ class Project:
         self.project_name = project_name
         self.developers = self.__set_developers()
 
-        src_soup = making_soup(request("GET", self.project_url + '/src').content, 'html')
+        src_soup = making_soup(request("GET", self.project_url + '/src', cookies=self.cookies).content, 'html')
         self.vcs = 'svn' if src_soup.find('div', class_='code_contents') else 'git'
 
         self.wiki_pages = self.__set_wiki_pages()

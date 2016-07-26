@@ -2,38 +2,15 @@
 import json
 import logging
 import os
-import subprocess
 import time
 from urllib.parse import urlparse
 
 import click
 import requests
-from config import WIKI_DIR_NAME, BASIC_TOKEN_FILE_NAME
+from config import WIKI_DIR_NAME
 from tqdm import tqdm
 
 from .helper import making_soup
-
-
-def upload_asset_by_git(user_name, project_name, repo_name, token):
-    click.echo('첨부파일 업로드를 시작합니다')
-    push_wiki_git = 'https://{0}:{1}@github.com/{0}/{2}.wiki.git'.format(user_name, token, repo_name)
-
-    curdir = os.getcwd()
-    os.chdir(os.path.join(curdir, 'wiki_repos', project_name))
-
-    git_commands = [
-        ['git', 'init'],
-        ['git', 'add', '--all'],
-        ['git', 'commit', '-m', 'all asset commit'],
-        ['git', 'remote', 'add', 'origin', push_wiki_git],
-        ['git', 'pull', push_wiki_git, 'master'],
-        ['git', 'push', '-f', push_wiki_git, 'master']
-    ]
-
-    for command in git_commands:
-        subprocess.call(command)
-
-    os.chdir(curdir)
 
 
 def file_download(attach_path, url, file_name, artifact_id, file_id, **kwargs):
@@ -72,8 +49,8 @@ def milestone_migration(project, api_url, gh, repo_name, token):
     milestones = project.milestones
 
     if milestones:
-        milestone_post_url = '{0}/repos/{1}/{2}/milestones?access_token={3}'.format(api_url, gh.user().login,
-                                                                                repo_name, token)
+        milestone_post_url = '{0}/repos/{1}/{2}/milestones?access_token={3}'.format(api_url, gh.user().login, repo_name,
+                                                                                    token)
         for milestone in milestones:
             requests.request("POST", milestone_post_url, data=str(milestone), cookies=project.cookies)
     else:
@@ -104,7 +81,7 @@ def get_attach_links(attachments, download_path, api_url, github_username, repo_
     return attach_links
 
 
-def get_comments(comments, api_url, attach_download_path, artifact_id, github_username, repo_name):
+def get_comments(comments, api_url, attach_download_path, artifact_id, github_username, repo_name, github_url):
     result = []
     comment_list = comments.find_all('item')
     attach_links = ''
@@ -141,13 +118,14 @@ def get_comments(comments, api_url, attach_download_path, artifact_id, github_us
 
                 file_download(attach_download_path, down_url, file_name, artifact_id, file_id, comment_id=id_)
 
-                uploaded_link = 'https://github.com/{0}/{1}/wiki/attachFile/{2}/{3}/{4}/{5}'.format(
+                uploaded_link = '{6}/{0}/{1}/wiki/attachFile/{2}/{3}/{4}/{5}'.format(
                     github_username,
                     repo_name,
                     artifact_id,
                     id_,
                     file_id,
-                    file_name)
+                    file_name,
+                    github_url)
                 attach_links += '* {0}\n\n\t![{0}]({1})\n\n'.format(file_name, uploaded_link)
 
         c_body = "This comment created by **{0}** | {1}\n\n------\n\n{2}{3}".format(author, print_time, body,
@@ -168,9 +146,11 @@ def issue_migration(**kwargs):
     project = kwargs.get('project')
     gh = kwargs.get('github_session')
     repo = kwargs.get('github_repository')
+    token_file_name = kwargs.get('token_file_name')
+
     github_api_url = gh.__dict__['_session'].__dict__['base_url']
 
-    with open(BASIC_TOKEN_FILE_NAME) as f:
+    with open(token_file_name) as f:
         token = f.read()
 
     header = {
@@ -257,7 +237,7 @@ def issue_migration(**kwargs):
             # 코멘트 파싱
             comment_list = [] if not parsed.comments else get_comments(parsed.comments, project.api_url,
                                                                        attach_download_path, artifact_id,
-                                                                       github_username, repo.name)
+                                                                       github_username, repo.name, github_url)
 
             issue_json = json.dumps(
                 dict(
@@ -273,5 +253,4 @@ def issue_migration(**kwargs):
 
             requests.request("POST", import_request_url, data=issue_json, headers=header)
 
-    upload_asset_by_git(github_username, project_name, repo.name, token)
     return True

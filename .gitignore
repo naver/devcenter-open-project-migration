@@ -7,7 +7,8 @@ logs/
 wiki_repos/
 *output/
 control.py
-GITHUB_ACCESS_TOKEN*
+GITHUB_ACCESS_TOKEN
+ENTERPRISE_ACCESS_TOKEN
 credentials.py
 .idea/
 COOKIES

@@ -29,7 +29,7 @@ def upload_asset_by_git(user_name, project_name, repo_name, token, github_url):
     url = urlparse(github_url).netloc
     push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(user_name, token, repo_name, url)
 
-    os.chdir(os.path.join(cur_dir, 'wiki_repos', project_name))
+    os.chdir(os.path.join(cur_dir, 'wiki_repos', repo_name))
 
     git_commands = [
         ['git', 'init'],
@@ -56,7 +56,7 @@ def upload_asset_by_git(user_name, project_name, repo_name, token, github_url):
 def cli(github_repo, project_name, api_url, enterprise_url, cookies, issue_only):
     os.chdir(cur_dir)
 
-    token_file_name = 'ENTERPRISE_ACCESS_TOKEN' if enterprise_url is True else 'GITHUB_ACCESS_TOKEN'
+    token_file_name = 'ENTERPRISE_ACCESS_TOKEN' if enterprise_url else 'GITHUB_ACCESS_TOKEN'
 
     token = migration.github_auth.confirm_token_file(token_file_name, enterprise_url)
     gh = migration.github_auth.create_session(token, enterprise_url)
@@ -84,7 +84,7 @@ def cli(github_repo, project_name, api_url, enterprise_url, cookies, issue_only)
 
     issue_result = pool.apply_async(issue_migration, kwds=param)
 
-    if not issue_only or enterprise_url:
+    if not issue_only:
         repo_result = pool.apply_async(repo_migration, kwds=param)
         repo_migration_success = repo_result.get()
 

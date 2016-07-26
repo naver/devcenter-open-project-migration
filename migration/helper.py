@@ -3,6 +3,7 @@ import random
 import string
 import sys
 
+import click
 from bs4 import BeautifulSoup
 
 
@@ -12,6 +13,12 @@ def making_soup(content, doc_type):
 
 def get_random_string(N):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
+
+
+def image_ext_check(ext):
+    image_extensions = ['bmp', 'jpeg', 'jpg', 'png', 'gif', 'bmp']
+
+    return True if ext.lower() in image_extensions else False
 
 
 # python 2.* 버전일 경우 인코딩을 강제로 정해줘야 함
@@ -31,3 +38,7 @@ def get_version(repo_name, title):
             return abs(result)
     except:
         return temp.replace(' ', '')
+
+
+def print_green(text):
+    click.echo(click.style(text, fg='green'))

@@ -10,7 +10,7 @@ import requests
 from config import WIKI_DIR_NAME
 from tqdm import tqdm
 
-from .helper import making_soup, set_encoding
+from .helper import making_soup, set_encoding, image_ext_check
 
 if sys.version_info.major is 2:
     set_encoding()
@@ -24,14 +24,9 @@ def file_download(attach_path, url, file_name, artifact_id, file_id, **kwargs):
     cookies = kwargs.get('cookies')
 
     if not comment_id:
-        down_path = '{0}/{1}/{2}/'.format(attach_path,
-                                          artifact_id,
-                                          file_id)
+        down_path = '{0}/{1}/{2}/'.format(attach_path, artifact_id, file_id)
     else:
-        down_path = '{0}/{1}/{2}/{3}/'.format(attach_path,
-                                              artifact_id,
-                                              comment_id,
-                                              file_id)
+        down_path = '{0}/{1}/{2}/{3}/'.format(attach_path, artifact_id, comment_id, file_id)
 
     full_path = down_path + file_name
 
@@ -69,20 +64,20 @@ def get_attach_links(attachments, download_path, api_url, github_username, repo_
     for item in attachments:
         body_file_link = item.find('link').get_text()
         body_file_name = item.find('name').get_text()
+        ext = body_file_name.split('.')[-1]
         body_file_id = item.find('id').get_text()
 
         down_url = "{0}{1}".format(api_url, body_file_link)
         file_download(download_path, down_url, body_file_name, artifact_id, body_file_id)
 
-        body_uploaded_link = 'https://{5}/{0}/{1}/wiki/attachFile/{2}/{3}/{4}'.format(
-            github_username,
-            repo_name,
-            artifact_id,
-            body_file_id,
-            body_file_name,
-            github_url)
+        body_uploaded_link = 'https://{5}/{0}/{1}/wiki/attachFile/{2}/{3}/{4}'.format(github_username, repo_name,
+                                                                                      artifact_id, body_file_id,
+                                                                                      body_file_name, github_url)
 
-        attach_links += '* {0}\n\n\t![{0}]({1})\n\n'.format(body_file_name, body_uploaded_link)
+        if image_ext_check(ext):
+            attach_links += '* {0}\n\n\t![{0}]({1})\n\n'.format(body_file_name, body_uploaded_link)
+        else:
+            attach_links += '* [{0}]({1})\n\n'.format(body_file_name, body_uploaded_link)
 
     return attach_links
 
@@ -120,11 +115,12 @@ def get_comments(comments, api_url, attach_download_path, artifact_id, github_us
                 file_id = item.find('id').get_text()
                 file_link = item.find('link').get_text()
                 file_name = file_link.split('/')[-1]
+                ext = file_name.split('.')[-1]
                 down_url = "{0}{1}".format(api_url, file_link)
 
                 file_download(attach_download_path, down_url, file_name, artifact_id, file_id, comment_id=id_)
 
-                uploaded_link = '{6}/{0}/{1}/wiki/attachFile/{2}/{3}/{4}/{5}'.format(
+                uploaded_link = 'https://{6}/{0}/{1}/wiki/attachFile/{2}/{3}/{4}/{5}'.format(
                     github_username,
                     repo_name,
                     artifact_id,
@@ -132,7 +128,11 @@ def get_comments(comments, api_url, attach_download_path, artifact_id, github_us
                     file_id,
                     file_name,
                     github_url)
-                attach_links += '* {0}\n\n\t![{0}]({1})\n\n'.format(file_name, uploaded_link)
+
+                if image_ext_check(ext):
+                    attach_links += '* {0}\n\n\t![{0}]({1})\n\n'.format(file_name, uploaded_link)
+                else:
+                    attach_links += '* [{0}]({1})\n\n'.format(file_name, uploaded_link)
 
         c_body = "This comment created by **{0}** | {1}\n\n------\n\n{2}{3}".format(author, print_time, body,
                                                                                     attach_links)
@@ -146,7 +146,7 @@ def get_comments(comments, api_url, attach_download_path, artifact_id, github_us
 
 
 def issue_migration(**kwargs):
-    click.echo('이슈 마이그레이션 중...')
+    click.echo('이슈 마이그레이션 중입니다...')
 
     # 기본 변수 정의
     project = kwargs.get('project')
@@ -168,14 +168,13 @@ def issue_migration(**kwargs):
     project_name = str(project)
     github_username = gh.user().login
 
-    import_request_url = '{0}/repos/{1}/{2}/import/issues'.format(github_api_url,
-                                                                  github_username,
-                                                                  repo.name)
+    import_request_url = '{0}/repos/{1}/{2}/import/issues'.format(github_api_url, github_username, repo.name)
 
     issue_urls = project.urls.copy()
     del issue_urls['download']
 
     github_parse_url = urlparse(github_api_url)
+
     github_url = 'github.com' if github_parse_url.netloc == 'api.github.com' \
         else github_parse_url.netloc
 
@@ -190,11 +189,14 @@ def issue_migration(**kwargs):
         artifacts = issue_board_xml.findAll(tag_name)
         date_type = "%Y/%m/%d %H:%M:%S"
 
+        click.echo(click.style(board_type, fg='green'))
+
         for id_tag in tqdm(artifacts):
             # 본문 파싱
             artifact_id = id_tag.get_text()
             request_url = '{0}/{1}/{2}.xml'.format(project.project_url, board_type, artifact_id)
             artifact_r = requests.request("GET", request_url, cookies=project.cookies)
+            artifact_r.encoding = 'utf-8'
 
             if not artifact_r.content:
                 log_msg = 'BLANK_XML Repo: {0}, Id: {1}, Type: {2}'.format(project_name, artifact_id, board_type)
@@ -203,24 +205,24 @@ def issue_migration(**kwargs):
 
             parsed = making_soup(artifact_r.content, 'xml')
 
-            try:
-                author = parsed.find('author').get_text().replace(' ', '')
-                assignee = parsed.find('assignee').get_text().replace(' ', '')
-                title = parsed.find('title').get_text()
-                body = parsed.find('description').get_text()
-                open_date_str = parsed.find('open_date').get_text()
-                close_date = parsed.find('close_date').get_text()
-            except Exception as e:
-                print(e)
-                log_msg = 'Parsing Failed Repo: {0}, Id: {1}, Type: {2}'.format(project_name, artifact_id, board_type)
-                logging.error(log_msg)
-                continue
+            author_tag = parsed.find('author')
+            assignee_tag = parsed.find('assignee')
+            title_tag = parsed.find('title')
+            body_tag = parsed.find('description')
+            open_date_tag = parsed.find('open_date')
+            close_date_tag = parsed.find('close_date')
 
+            author = author_tag.get_text().replace(' ', '') if author_tag else 'Nobody'
+            assignee = assignee_tag.get_text().replace(' ', '') if author_tag else 'Nobody'
+            title = title_tag.get_text() if author_tag else 'No title'
+            body = body_tag.get_text() if author_tag else 'No description'
+            open_date_str = open_date_tag.get_text() if author_tag else '0'
+            close_date = close_date_tag.get_text() if author_tag else '0'
             open_date = time.strftime(date_type, time.localtime(int(open_date_str)))
             closed = False if close_date == '0' else True
 
             # 첨부파일 파싱
-            attach_download_path = os.path.join(WIKI_DIR_NAME, project_name, 'attachFile')
+            attach_download_path = os.path.join(WIKI_DIR_NAME, repo.name, 'attachFile')
 
             attachments = parsed.attachments
             attach_markdown = '\n\n-----\n### Attachments\n'

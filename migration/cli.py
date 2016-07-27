@@ -9,7 +9,7 @@ import webbrowser
 import click
 import migration.github_auth
 
-from .helper import set_encoding
+from .helper import set_encoding, print_green
 from .issue_migration import issue_migration
 from .project import Project
 from .repo_migration import repo_migration, pool
@@ -24,7 +24,7 @@ cur_dir = os.getcwd()
 logging.basicConfig(filename=os.path.join('logs', time.strftime("%Y-%m-%d %H:%M:%S") + '.log'), level=logging.ERROR)
 
 
-def upload_asset_by_git(user_name, project_name, repo_name, token, github_url):
+def upload_asset_by_git(user_name, repo_name, token, github_url):
     click.echo('첨부파일 업로드를 시작합니다')
     url = urlparse(github_url).netloc
     push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(user_name, token, repo_name, url)
@@ -69,8 +69,9 @@ def cli(github_repo, project_name, api_url, enterprise_url, cookies, issue_only)
 
     if not repo:
         repo = gh.create_repo(github_repo)
-
-    click.echo('GitHub 저장소 생성 완료...')
+        print_green('{0} 저장소가 생성되었습니다...'.format(repo.name))
+    else:
+        print_green('{0} 저장소가 존재합니다...'.format(repo.name))
 
     # 위키 페이지를 만들 수 있도록 자동으로 웹 브라우저를 열어줌
     if webbrowser.open(wiki_create_page_url):
@@ -96,7 +97,7 @@ def cli(github_repo, project_name, api_url, enterprise_url, cookies, issue_only)
     if not issue_migration_success:
         click.echo('Issue migration failed...')
 
-    upload_asset_by_git(github_id, project_name, repo.name, token, github_url)
+    upload_asset_by_git(github_id, repo.name, token, github_url)
 
 if __name__ == '__main__':
     cli()

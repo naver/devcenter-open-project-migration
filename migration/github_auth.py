@@ -3,7 +3,6 @@
 github_auth.py : GitHub 인증을 담당함
 """
 import os
-import random
 
 import click
 import github3
@@ -42,44 +41,14 @@ def confirm_token(token, enterprise_url, file_name):
     else:
         user_request_url = '{0}/api/v3/user?access_token={1}'.format(enterprise_url, token)
 
-    if requests.request("GET", user_request_url).status_code is 200:
+    confirm_token_status_code = requests.request("GET", user_request_url).status_code
+
+    if confirm_token_status_code is 200:
         return write_token_to_file(token, file_name)
-    elif requests.request("GET", user_request_url).status_code is 404:
-        if not enterprise_url:
-            input_credentials(enterprise_url, file_name)
+    elif confirm_token_status_code is 404:
         raise InvalidEnterPriseUrlError(enterprise_url)
     else:
-        if not enterprise_url:
-            input_credentials(enterprise_url, file_name)
         raise InvalidTokenError(token)
-
-
-# ID/PW 입력
-# T 엑세스 토큰 만들고 검증 / F 입력 반복
-def input_credentials(enterprise_url, file_name, github_id=None, github_pw=None):
-    auth = None
-
-    if not github_id:
-        github_id = click.prompt('GitHub 아이디를 입력해주세요')
-
-    if not github_pw:
-        github_pw = click.prompt('GitHub 비밀번호를 입력해주세요',
-                                 hide_input=True, confirmation_prompt=True)
-
-    n = random.choice([i for i in range(1, 100)])
-
-    # 랜덤하게 personal access token 을 생성함
-    note = 'nopm' + str(n)
-    grant = ['repo', 'user', 'delete_repo']
-
-    note_url = 'https://developers.naver.com'
-
-    try:
-        auth = github3.authorize(github_id, github_pw, grant, note, note_url)
-    except github3.models.GitHubError:
-        click.echo('잘못된 아이디와 비밀번호 입니다!!')
-
-    confirm_token(auth.token, enterprise_url, file_name)
 
 
 def write_token_to_file(token, file_name):

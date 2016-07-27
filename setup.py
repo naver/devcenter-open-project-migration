@@ -19,6 +19,7 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        cli=migration.cli:cli
+        tm=cli.token_manage:token_manage
+        repom=cli.token_manage:repo_manage
     ''',
 )

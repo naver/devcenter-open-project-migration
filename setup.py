@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup
 from migration import __version__
+from setuptools import setup
 
 setup(
     name='migration',
@@ -19,7 +19,8 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        tm=cli.token_manage:token_manage
-        repom=cli.token_manage:repo_manage
+        parser=migration.parser_cli:parser_cli
+        token=migration.token_manage:token_manage
+        repo=migration.repo_manage:repo_manage
     ''',
 )

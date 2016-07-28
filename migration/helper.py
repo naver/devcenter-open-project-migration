@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import os
 import random
 import string
 import sys
 
 import click
 from bs4 import BeautifulSoup
+from migration import COOKIE_PATH
 
 
 def making_soup(content, doc_type):
@@ -28,6 +30,26 @@ def set_encoding():
     sys.setdefaultencoding('utf-8')
 
 
+def get_cookies():
+    cookies = dict()
+    nss_tok = 'nssTok'
+
+    try:
+        with open(COOKIE_PATH) as f:
+            cookie_list = [cookie for cookie in f]
+
+        for cookie in cookie_list:
+            cookie_split = cookie.split(' ')
+            cookies[cookie_split[0]] = cookie_split[1].replace('\n', '')
+    except FileNotFoundError:
+        cookies[nss_tok] = str(input(nss_tok + ' : '))
+
+        with open(COOKIE_PATH, 'w') as f:
+            f.write(nss_tok + ' ' + cookies[nss_tok])
+
+    return cookies
+
+
 # Version name 을 어떻게든 얻어보고자 고군분투하는 함수
 def get_version(repo_name, title):
     # temp = str.upper(title).replace(str.upper(self.,  _repo_name),'')
@@ -42,3 +64,8 @@ def get_version(repo_name, title):
 
 def print_green(text):
     click.echo(click.style(text, fg='green'))
+
+
+def make_dirs(path):
+    if not os.path.exists(path):
+        os.makedirs(path)

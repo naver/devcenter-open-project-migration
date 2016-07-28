@@ -3,7 +3,7 @@ boards/
 *.xml
 venv/
 logs/
-*.zip
+*.zipz
 wiki_repos/
 *output/
 control.py
@@ -12,6 +12,8 @@ ENTERPRISE_ACCESS_TOKEN
 credentials.py
 .idea/
 COOKIES
+data
+Nforge
 
 # Github provided
 # Byte-compiled / optimized / DLL files
@@ -95,7 +97,6 @@ celerybeat-schedule
 .env
 
 # virtualenv
-venv/
 *venv*
 ENV/
 

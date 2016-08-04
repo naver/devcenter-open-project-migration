@@ -6,11 +6,10 @@ from urllib.parse import urlparse
 
 import requests
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
+from migration.helper import making_soup, get_cookies, make_dirs
+from migration.milestone import Milestone
 from requests import request
 from tqdm import tqdm
-
-from .helper import making_soup, get_cookies, make_dirs
-from .milestone import Milestone
 
 
 class InvalidProjectError(Exception):
@@ -76,7 +75,8 @@ class Nforge:
         with open(os.path.join(self.path, 'project_info.json'), 'w') as pr_info:
             pr_info.write(json.dumps(dict(
                 name=project_name,
-                url=self.url
+                url=self.url,
+                cookies=self.cookies
             )))
 
     def __str__(self):
@@ -219,10 +219,16 @@ class Nforge:
 
             progress_bar = tqdm(doc_ids)
 
+            xml_path = os.path.join(self.paths[is_download], self.sub_dirs[1], board)
+
+            if not os.path.exists(xml_path):
+                os.mkdir(xml_path)
+
             for doc_id in progress_bar:
                 progress_bar.set_description('Now making {0}.xml of {1}'.format(doc_id, board))
 
-                xml_path = os.path.join(self.paths[is_download], self.sub_dirs[1], doc_id) + '.xml'
+                fn = doc_id + '.xml'
+
                 doc_req_url = '{0}/{1}/{2}.xml'.format(self.project_url, board, doc_id)
                 doc_requests = requests.request('GET', doc_req_url, cookies=self.cookies)
 
@@ -234,7 +240,7 @@ class Nforge:
                 parsed_xml = xml_bytes.replace('&#13;', '\n')
                 xml_lists[is_download].append(parsed_xml)
 
-                with open(xml_path, 'w') as xml_file:
+                with open(os.path.join(xml_path, fn), 'w') as xml_file:
                     xml_file.write(parsed_xml)
 
         return xml_lists

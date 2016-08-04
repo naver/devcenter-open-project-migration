@@ -20,6 +20,7 @@ CODE_INFO_FILE = 'code_info.json'
 DOWNLOADS_DIR = 'downloads'
 ISSUES_DIR = 'issues'
 ISSUE_ATTACH_DIR = 'attachFile'
+MILESTONES_DIR = 'milestones'
 
 FILE_NAMES = dict(token=TOKEN_FILE_NAMES, repo=REPO_LIST_FILE_NAMES)
 

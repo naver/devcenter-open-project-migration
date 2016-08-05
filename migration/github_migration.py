@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
+import glob
 import json
 import mimetypes
 import os
 import time
+from urllib.parse import urlparse
 
 import click
 import github3
 import grequests
 import requests
+import subprocess
 from github3.exceptions import GitHubError
-from migration import WAIT_TIME, ASSET_DIR, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
+from helper import get_fn
+from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -22,10 +26,11 @@ def exception_handler(request, exception):
 class GitHubSession:
     urls = ['https://github.com', 'https://oss.navercorp.com']
 
-    def __init__(self, token, enterprise, repo_name):
+    def __init__(self, token, enterprise, repo_name, path):
         self.url = self.urls[enterprise]
         self.token = token
         self.enterprise = enterprise
+        self.path = path
 
         self.session = github3.login(token=token) \
             if not enterprise else github3.GitHubEnterprise(self.url, token=token)
@@ -40,24 +45,29 @@ class GitHubSession:
 
         self.repo_name = repo_name
 
-    def make_github_info(self, path):
-        with open(os.path.join(path, 'github_info.json'), 'w') as github_info:
-            github_info.write(json.dumps(dict(
-                enterprise=self.enterprise,
-                token=self.token,
-                repo_name=self.repo_name
-            )))
 
-
-class GithubMigration:
+class GithubMigration(GitHubSession):
     header_basis = {
         'authorization': "token ",
         'content-type': "application/json",
     }
 
-    def __init__(self, github_session, repo, token, data_path):
+    def __init__(self, **kwargs):
         # 헤더 정의
-        self.header_basis['authorization'] += token
+        session = kwargs.get('session')
+
+        if not session:
+            token = kwargs.get('token')
+            enterprise = kwargs.get('enterprise')
+            repo_name = kwargs.get('repo_name')
+            path = kwargs.get('path')
+
+            super(GithubMigration, self).__init__(token, enterprise, repo_name, path)
+        else:
+            for k, v in session.__dict__.items():
+                self.__dict__[k] = v
+
+        self.header_basis['authorization'] += self.token
 
         self.basic_header = self.header_basis.copy()
         self.issue_header = self.header_basis.copy()
@@ -67,15 +77,9 @@ class GithubMigration:
         self.issue_header['Accept'] = 'application/vnd.github.golden-comet-preview'
         self.repo_header['Accept'] = 'application/vnd.github.barred-rock-preview'
 
-        self.github_api_url = github_session.__dict__['_session'].__dict__['base_url']
-        self.github_username = github_session.user().login
-        self.repo = repo
-        self.repo_name = self.repo.name
-        self.basis_repo_url = '{0}/repos/{1}/{2}'.format(self.github_api_url, self.github_username, self.repo_name)
+        self.basis_repo_url = '{0}/repos/{1}/{2}'.format(self.api_url, self.username, self.repo_name)
         self.import_repo_url = self.basis_repo_url + '/import'
         self.import_issue_url = self.import_repo_url + '/issues'
-
-        self.data_path = data_path
 
         self.issues = self.read_issue_json()
         self.downloads = self.read_downloads()
@@ -83,61 +87,46 @@ class GithubMigration:
     def read_issue_json(self):
         files = []
 
-        raw_files_dir = 'wiki_repo'
-        path = os.path.join(self.data_path, ISSUES_DIR)
-
-        json_list = os.listdir(path)
-        json_list.remove(raw_files_dir)
+        path = os.path.join(self.path, ISSUES_DIR, 'json', '*.json')
+        json_list = glob.glob(path)
 
         for fn in json_list:
-            ext = os.path.splitext(fn)[1]
-
-            if ext != '.json':
-                continue
-
-            with open(os.path.join(path, fn)) as json_text:
+            with open(fn) as json_text:
                 read_file = json_text.read()
                 files.append(read_file.encode('utf-8'))
 
         return files
 
     def read_downloads(self):
-        path = os.path.join(self.data_path, DOWNLOADS_DIR)
-        result = dict()
+        downloads_path = os.path.join(self.path, DOWNLOADS_DIR)
+        json_path = os.path.join(downloads_path, 'json', '*.json')
+        raw_path = os.path.join(downloads_path, 'raw')
 
-        for fn in os.listdir(path):
-            ext = os.path.splitext(fn)[1]
-            content_path = os.path.join(path, fn)
+        downloads = dict()
 
-            if fn != 'files':
-                if ext != '.json':
-                    continue
+        for file_path in glob.glob(json_path):
+            download_id = get_fn(file_path, 0)
+            downloads[download_id] = dict()
 
-                download_id = os.path.splitext(fn)[0]
+            with open(file_path) as json_text:
+                downloads[download_id]['json'] = json.loads(json_text.read())
 
-                result[download_id] = dict()
-                result[download_id][ASSET_DIR] = list()
+        for download_id in os.listdir(raw_path):
+            downloads[download_id]['raw'] = list()
 
-                with open(content_path) as json_text:
-                    result[download_id]['description'] = json.loads(json_text.read())
-            else:
-                for download_id in os.listdir(content_path):
-                    raw_dir_path = os.path.join(content_path, download_id)
+            for file_path in glob.glob(os.path.join(raw_path, download_id, '*.*')):
+                file_name = get_fn(file_path)
+                ext = get_fn(file_path, 1)
+                content_type = mimetypes.types_map[ext]
 
-                    for raw_fn in os.listdir(raw_dir_path):
-                        file_path = os.path.join(raw_dir_path, raw_fn)
-                        file_name = os.path.basename(file_path)
-                        ext = os.path.splitext(file_name)[1]
-                        content_type = mimetypes.types_map[ext]
+                with open(file_path, 'rb') as raw_file:
+                    downloads[download_id]['raw'].append(dict(
+                        name=file_name,
+                        raw=raw_file.read(),
+                        content_type=content_type
+                    ))
 
-                        with open(file_path, 'rb') as raw_file:
-                            result[download_id]['files'].append(dict(
-                                name=file_name,
-                                raw=raw_file.read(),
-                                content_type=content_type
-                            ))
-
-        return result
+        return downloads
 
     def issues_migration(self):
         irs = (grequests.post(self.import_issue_url, data=issue, headers=self.issue_header) for issue in self.issues)
@@ -147,10 +136,33 @@ class GithubMigration:
             if not ok_code.match(str(response.status_code)):
                 return False
 
+        self.upload_issue_attach()
         return True
 
+    def upload_issue_attach(self):
+        github = urlparse(self.url).netloc
+        push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(self.username, self.token, self.repo_name, github)
+
+        cur_dir = os.curdir
+        os.chdir(os.path.join(self.path, ISSUES_DIR, 'raw'))
+
+        git_commands = [
+            ['git', 'init'],
+            ['git', 'config', 'core.quotepath', 'false'],  # 유니코드 문자일 때 \ 를 방지하기 위함
+            ['git', 'add', '--all'],
+            ['git', 'commit', '-m', 'all asset commit'],
+            ['git', 'remote', 'add', 'origin', push_wiki_git],
+            ['git', 'pull', '-f', push_wiki_git, 'master'],
+            ['git', 'push', '-f', push_wiki_git, 'master']
+        ]
+
+        for command in git_commands:
+            subprocess.call(command)
+
+        os.chdir(cur_dir)
+
     def repo_migration(self):
-        with open(os.path.join(self.data_path, CODE_INFO_FILE)) as code_info:
+        with open(os.path.join(self.path, CODE_INFO_FILE)) as code_info:
             r = requests.request("PUT", self.import_repo_url, data=code_info.read().encode('utf-8'),
                                  headers=self.repo_header)
 
@@ -168,8 +180,8 @@ class GithubMigration:
             time.sleep(WAIT_TIME)
 
         for download_dict in self.downloads.values():
-            description = download_dict['description']
-            files = download_dict['files']
+            description = download_dict['json']
+            files = download_dict['raw']
 
             tag_name = description['tag_name']
             target_commitish = description['target_commitish']

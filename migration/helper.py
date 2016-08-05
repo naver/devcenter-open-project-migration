@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-import random
-import string
 import sys
 
 import click
@@ -11,16 +9,6 @@ from migration import COOKIE_PATH
 
 def making_soup(content, doc_type):
     return BeautifulSoup(content, 'lxml' if doc_type is 'html' else 'xml')
-
-
-def get_random_string(N):
-    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
-
-
-def image_ext_check(ext):
-    image_extensions = ['bmp', 'jpeg', 'jpg', 'png', 'gif', 'bmp']
-
-    return True if ext.lower() in image_extensions else False
 
 
 # python 2.* 버전일 경우 인코딩을 강제로 정해줘야 함
@@ -48,6 +36,21 @@ def get_cookies():
             f.write(nss_tok + ' ' + cookies[nss_tok])
 
     return cookies
+
+
+def get_fn(path, mode=None):
+    """
+    :param path: 파일의 경로
+    :param mode: 인덱스
+    :return: mode 가 None이면 풀 파일이름 숫자면 오직 이름 혹은 확장자
+    """
+    if mode is None:
+        return os.path.basename(path)
+    else:
+        if not type(mode) is int:
+            raise ValueError
+        else:
+            return os.path.splitext(os.path.basename(path))[mode]
 
 
 # Version name 을 어떻게든 얻어보고자 고군분투하는 함수

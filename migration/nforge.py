@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import requests
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
 from migration.helper import making_soup, get_cookies, make_dirs
-from migration.milestone import Milestone
+from migration.nforge_object import Milestone
 from requests import request
 from tqdm import tqdm
 
@@ -192,7 +192,10 @@ class Nforge:
         xml_soup = making_soup(milestone_xml, 'xml')
         milestones_soup = xml_soup.findAll('milestone')
         milestones_path = os.path.join(self.path, 'milestones')
-        os.mkdir(milestones_path)
+
+        if not os.path.exists(milestones_path):
+            os.mkdir(milestones_path)
+
         milestones = list()
 
         if milestones_soup:
@@ -219,9 +222,9 @@ class Nforge:
 
             progress_bar = tqdm(doc_ids)
 
-            xml_path = os.path.join(self.paths[is_download], self.sub_dirs[1], board)
+            xml_path = os.path.join(self.paths[is_download], self.sub_dirs[1], board if not is_download else '')
 
-            if not os.path.exists(xml_path):
+            if not os.path.exists(xml_path) and not is_download:
                 os.mkdir(xml_path)
 
             for doc_id in progress_bar:

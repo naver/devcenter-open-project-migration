@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+import os
+
 import click
 
 
@@ -6,6 +9,7 @@ import click
 @click.option('--dev_code', type=str, help='DevCode 유무', is_flag=True, default=False)
 def parser_cli(project_name, dev_code):
     # 폴더 만들기
+    print(os.path.abspath(os.path.curdir))
     pass
 
 

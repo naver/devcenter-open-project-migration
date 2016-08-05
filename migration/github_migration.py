@@ -3,6 +3,7 @@ import glob
 import json
 import mimetypes
 import os
+import subprocess
 import time
 from urllib.parse import urlparse
 
@@ -10,9 +11,8 @@ import click
 import github3
 import grequests
 import requests
-import subprocess
 from github3.exceptions import GitHubError
-from helper import get_fn
+from helper import get_fn, chunks
 from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -117,7 +117,11 @@ class GithubMigration(GitHubSession):
             for file_path in glob.glob(os.path.join(raw_path, download_id, '*.*')):
                 file_name = get_fn(file_path)
                 ext = get_fn(file_path, 1)
-                content_type = mimetypes.types_map[ext]
+
+                try:
+                    content_type = mimetypes.types_map[ext]
+                except KeyError:
+                    content_type = 'multipart/form-data'
 
                 with open(file_path, 'rb') as raw_file:
                     downloads[download_id]['raw'].append(dict(
@@ -129,12 +133,15 @@ class GithubMigration(GitHubSession):
         return downloads
 
     def issues_migration(self):
-        irs = (grequests.post(self.import_issue_url, data=issue, headers=self.issue_header) for issue in self.issues)
-        import_issues = grequests.map(irs, exception_handler=exception_handler)
+        issue_split = list(chunks(self.issues, 30))
 
-        for response in import_issues:
-            if not ok_code.match(str(response.status_code)):
-                return False
+        for issues in issue_split:
+            irs = (grequests.post(self.import_issue_url, data=issue, headers=self.issue_header) for issue in issues)
+            import_issues = grequests.map(irs, exception_handler=exception_handler)
+
+            for response in import_issues:
+                if not ok_code.match(str(response.status_code)):
+                    return False
 
         self.upload_issue_attach()
         return True

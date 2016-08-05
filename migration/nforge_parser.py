@@ -16,11 +16,11 @@ class NforgeParser:
     print_type = "%Y/%m/%d %H:%M:%S"
     github_type = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self, github_session, project_path, **kwargs):
+    def __init__(self, github_session, **kwargs):
         self.github_session = github_session
-        self.path = project_path
+        self.path = github_session.path
 
-        with open(os.path.join(project_path, 'project_info.json')) as pr_info:
+        with open(os.path.join(self.path, 'project_info.json')) as pr_info:
             info = json.load(pr_info)
 
         self.pr_name = info['name']
@@ -179,7 +179,9 @@ class NforgeParser:
                 file_path = '/{0}/{1}/{2}'.format(content_id, fid, fn)
                 github_link = self.file_link_basis + file_path
 
-                if mimetypes.guess_type(fn)[0].split('/')[0] == 'image':
+                type = mimetypes.guess_type(fn)[0]
+
+                if type and type.split('/')[0] == 'image':
                     attach_markdown += '* {0}\n\n\t![{0}]({1})\n\n'.format(fn, github_link)
                 else:
                     attach_markdown += '* [{0}]({1})\n\n'.format(fn, github_link)

@@ -3,7 +3,11 @@ import os
 
 import click
 import requests
-from migration import API_URLS, DATA_DIR, get_file_path
+from cli import API_URLS, DATA_DIR, FILE_NAMES
+
+
+def get_file_path(file_type, enterprise):
+    return os.path.join(DATA_DIR, FILE_NAMES[file_type][enterprise])
 
 
 def confirm_token(token, enterprise):
@@ -40,7 +44,7 @@ def read_token_from_file(file_path, enterprise):
 @click.command()
 @click.option('--token', help='토큰 입력')
 @click.option('--enterprise', help='GitHub Enterprise mode', is_flag=True, default=False)
-def token_manage(token, enterprise):
+def github_token(token, enterprise):
     """ Managing your GitHub and GitHub ENTERPRISE TOKEN. """
     token_file_path = get_file_path('token', enterprise)
 
@@ -54,4 +58,4 @@ if __name__ == '__main__':
     if not os.path.exists(DATA_DIR):
         os.mkdir(DATA_DIR)
 
-    token_manage()
+    github_token()

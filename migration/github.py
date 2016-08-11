@@ -12,7 +12,7 @@ import github3
 import grequests
 import requests
 from github3.exceptions import GitHubError
-from helper import get_fn, chunks
+from .helper import get_fn, chunks
 from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -31,6 +31,7 @@ class GitHubSession:
         self.token = token
         self.enterprise = enterprise
         self.path = path
+        self.cur_dir = os.path.abspath(os.curdir)
 
         self.session = github3.login(token=token) \
             if not enterprise else github3.GitHubEnterprise(self.url, token=token)
@@ -41,9 +42,17 @@ class GitHubSession:
         self.repo = self.session.repository(owner=self.username, repository=repo_name)
 
         if not self.repo:
-            self.session.create_repo(repo_name)
+            self.repo = self.session.create_repo(repo_name)
 
         self.repo_name = repo_name
+
+    def make_github_info(self):
+        with open(os.path.join(self.path, 'github_info.json'), 'w') as github_info:
+            json.dump(dict(
+                enterprise=self.enterprise,
+                token=self.token,
+                repo_name=self.repo_name
+            ), github_info)
 
 
 class GithubMigration(GitHubSession):
@@ -93,7 +102,7 @@ class GithubMigration(GitHubSession):
         for fn in json_list:
             with open(fn) as json_text:
                 read_file = json_text.read()
-                files.append(read_file.encode('utf-8'))
+                files.append(read_file)
 
         return files
 
@@ -150,12 +159,10 @@ class GithubMigration(GitHubSession):
         github = urlparse(self.url).netloc
         push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(self.username, self.token, self.repo_name, github)
 
-        cur_dir = os.curdir
         os.chdir(os.path.join(self.path, ISSUES_DIR, 'raw'))
 
         git_commands = [
             ['git', 'init'],
-            ['git', 'config', 'core.quotepath', 'false'],  # 유니코드 문자일 때 \ 를 방지하기 위함
             ['git', 'add', '--all'],
             ['git', 'commit', '-m', 'all asset commit'],
             ['git', 'remote', 'add', 'origin', push_wiki_git],
@@ -166,7 +173,7 @@ class GithubMigration(GitHubSession):
         for command in git_commands:
             subprocess.call(command)
 
-        os.chdir(cur_dir)
+        os.chdir(self.cur_dir)
 
     def repo_migration(self):
         with open(os.path.join(self.path, CODE_INFO_FILE)) as code_info:

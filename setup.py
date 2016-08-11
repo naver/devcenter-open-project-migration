@@ -19,8 +19,8 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        parser=migration.parser_cli:parser_cli
-        token=migration.token_manage:token_manage
-        repo=migration.repo_manage:repo_manage
+        npa=cli.nforge_parser:nforge_parser
+        ght=cli.github_token:github_token
+        ghm=cli.github_migration:github_migration
     ''',
 )

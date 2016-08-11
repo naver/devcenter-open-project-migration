@@ -1,4 +1,5 @@
 import glob
+import hashlib
 import json
 import mimetypes
 import os
@@ -106,7 +107,7 @@ class NforgeParser:
                             labels=[doc_type]
                         ),
                         comments=comment_list
-                    ), ensure_ascii=False)
+                    ))
 
                 with open(os.path.join(self.issues_dir, 'json', issue_id + '.json'), 'w') as json_file:
                     json_file.write(issue_json)
@@ -161,6 +162,8 @@ class NforgeParser:
                     link = link_tag.get_text()
 
                 fn = link.split('/')[-1]
+                ext = get_fn(fn, 1)
+                fn_md5 = hashlib.md5(fn.encode('utf-8')).hexdigest() + ext
                 fid = 'No file id' if not id_tag else id_tag.get_text()
 
                 # 파일 다운로드
@@ -173,15 +176,15 @@ class NforgeParser:
                     if not os.path.exists(down_path):
                         os.makedirs(down_path)
 
-                    with open(os.path.join(down_path, fn), 'wb') as f:
+                    with open(os.path.join(down_path, fn_md5), 'wb') as f:
                         f.write(downloaded.content)
 
-                file_path = '/{0}/{1}/{2}'.format(content_id, fid, fn)
+                file_path = '/{0}/{1}/{2}'.format(content_id, fid, fn_md5)
                 github_link = self.file_link_basis + file_path
 
-                type = mimetypes.guess_type(fn)[0]
+                mime_type = mimetypes.guess_type(fn)[0]
 
-                if type and type.split('/')[0] == 'image':
+                if mime_type and mime_type.split('/')[0] == 'image':
                     attach_markdown += '* {0}\n\n\t![{0}]({1})\n\n'.format(fn, github_link)
                 else:
                     attach_markdown += '* [{0}]({1})\n\n'.format(fn, github_link)

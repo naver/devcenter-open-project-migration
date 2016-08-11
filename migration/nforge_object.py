@@ -13,7 +13,8 @@ class NforgeObject:
         assert self.tags
 
         for tag in self.tags:
-            self.__dict__[tag] = self.soup.find(tag)
+            find_tag = self.soup.find(tag)
+            self.__dict__[tag] = find_tag.get_text() if find_tag else '0'
 
     def __str__(self):
         return self.result

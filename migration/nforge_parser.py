@@ -4,13 +4,17 @@ import json
 import mimetypes
 import os
 import time
-from urllib.parse import urljoin
-
 import requests
+import sys
 from migration import ISSUES_DIR, DOWNLOADS_DIR, ISSUE_ATTACH_DIR
 from tqdm import tqdm
 
 from .helper import making_soup, get_fn
+
+if sys.version_info[0] == 3:
+    from urllib.parse import urljoin
+else:
+    from urlparse import urljoin
 
 
 class NforgeParser:

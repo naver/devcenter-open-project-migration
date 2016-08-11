@@ -2,7 +2,7 @@
 import json
 import logging
 import os
-from urllib.parse import urlparse
+import sys
 
 import requests
 from cli import DATA_DIR
@@ -11,6 +11,11 @@ from migration.helper import making_soup, make_dirs
 from migration.nforge_object import Milestone
 from requests import request
 from tqdm import tqdm
+
+if sys.version_info[0] == 3:
+    from urllib.parse import urlparse
+else:
+    from urlparse import urlparse
 
 
 class InvalidProjectError(Exception):

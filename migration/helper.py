@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 
+import sys
 from bs4 import BeautifulSoup
+from imp import reload
 
 
 def making_soup(content, doc_type):
@@ -42,3 +44,9 @@ def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
         yield l[i:i + n]
+
+
+def set_encoding():
+    if sys.version_info[0] == 2:
+        reload(sys)
+        sys.setdefaultencoding('utf-8')

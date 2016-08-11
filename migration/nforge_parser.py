@@ -4,7 +4,7 @@ import json
 import mimetypes
 import os
 import time
-from urllib.parse import urljoin
+from future.moves.urllib.parse import urljoin
 
 import requests
 from tqdm import tqdm
@@ -149,7 +149,7 @@ class NforgeParser:
 
         if items and content_id:
             for item in items:
-                # 간혹 item 갯수가 0인 게 있음
+                # Sometimes length of items is zero.
                 if items.index(item) == 0:
                     attach_markdown = '\n\n-----\n### Attachments\n'
 
@@ -166,7 +166,7 @@ class NforgeParser:
                 fn_md5 = hashlib.md5(fn.encode('utf-8')).hexdigest() + ext
                 fid = 'No file id' if not id_tag else id_tag.get_text()
 
-                # 파일 다운로드
+                # Download files
                 down_url = urljoin(self.url, link)
                 down_path = os.path.join(self.attach_path, content_id, fid)
 

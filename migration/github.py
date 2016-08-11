@@ -5,7 +5,7 @@ import mimetypes
 import os
 import subprocess
 import time
-from urllib.parse import urlparse
+from future.moves.urllib.parse import urlparse
 
 import click
 import github3
@@ -21,7 +21,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 def exception_handler(request, exception):
-    print(exception)
+    print(request.text, exception)
 
 
 class GitHubSession:

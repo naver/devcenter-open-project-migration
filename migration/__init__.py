@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
+from .helper import set_encoding
 
+set_encoding()
 __version__ = '0.11-dev'
 
 WAIT_TIME = 5

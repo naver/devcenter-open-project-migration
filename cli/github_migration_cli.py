@@ -33,8 +33,16 @@ def github_migration_cli(open_project):
     for idx in range(len(output_dirs)):
         menu += '{0}: {1} '.format(str(idx), output_dirs[idx])
 
-    idx = click.prompt(menu, type=int)
-    project_name = output_dirs[idx]
+    project_name = ''
+
+    while not project_name:
+        idx = click.prompt(menu, type=int)
+
+        try:
+            project_name = output_dirs[idx]
+        except IndexError:
+            click.echo('%d is not valid number' % idx)
+
     project_path = os.path.join(nforge_path, project_name)
 
     with open(os.path.join(project_path, 'github_info.json')) as github_info:

@@ -62,7 +62,7 @@ def read_token_from_file(file_path, enterprise):
             token = token_file.read()
 
         return token if confirm_token(token, enterprise) else token_to_file(token, file_path, enterprise)
-    except FileNotFoundError:
+    except EnvironmentError:
         return token_to_file(token, file_path, enterprise)
 
 

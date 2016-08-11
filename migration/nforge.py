@@ -2,10 +2,11 @@
 import json
 import logging
 import os
-from urllib.parse import urlparse
+import time
 
 import requests
-import time
+from builtins import input
+from future.moves.urllib.parse import urlparse
 from requests import request
 from tqdm import tqdm
 
@@ -88,7 +89,7 @@ class Nforge:
                 for cookie in cookie_list:
                     cookie_split = cookie.split(' ')
                     self.cookies[cookie_split[0]] = cookie_split[1].replace('\n', '')
-            except FileNotFoundError:
+            except EnvironmentError:
                 self.cookies[nss_tok] = str(input(nss_tok + ' : '))
 
                 with open(self.COOKIE_PATH, 'w') as f:

@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
-
 import time
+
+from migration.helper import set_encoding
+
+set_encoding()
 
 CUR_DIR = os.getcwd()
 DATA_DIR = 'data'

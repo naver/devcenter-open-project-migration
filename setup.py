@@ -17,7 +17,8 @@ setup(
         'github3.py',
         'requests',
         'requests-toolbelt',
-        'grequests'
+        'grequests',
+        'future'
     ],
     entry_points='''
         [console_scripts]

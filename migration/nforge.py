@@ -5,8 +5,9 @@ import os
 from urllib.parse import urlparse
 
 import requests
+from cli import DATA_DIR
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
-from migration.helper import making_soup, get_cookies, make_dirs
+from migration.helper import making_soup, make_dirs
 from migration.nforge_object import Milestone
 from requests import request
 from tqdm import tqdm
@@ -23,13 +24,13 @@ class InvalidProjectError(Exception):
 
 # html 을 파싱해서 최대한 정보를 뺴와야 함
 class Nforge:
-    open_project_url = 'http://staging.dev.naver.com'
-    dev_code_url = 'http://devcode.nhncorp.com'
-
     cookies = None
-    sub_dirs = ['raw', 'xml', 'json']
-    nforge_urls = ['http://staging.dev.naver.com', 'http://devcode.nhncorp.com/']
-    id_tags = ['artifact_id', 'release_id']
+    SUB_DIRS = ['raw', 'xml', 'json']
+    NFORGE_URLS = ['http://staging.dev.naver.com', 'http://devcode.nhncorp.com/']
+    ID_TAGS = ['artifact_id', 'release_id']
+
+    COOKIE_FILE = 'COOKIES'
+    COOKIE_PATH = os.path.join(DATA_DIR, COOKIE_FILE)
 
     def __init__(self, project_name, dev_code):
         """
@@ -48,7 +49,7 @@ class Nforge:
         make_dirs(self.issues_path)
         make_dirs(self.downloads_path)
 
-        for sub_dir in self.sub_dirs:
+        for sub_dir in self.SUB_DIRS:
             issue_data = os.path.join(self.issues_path, sub_dir)
             download_data = os.path.join(self.downloads_path, sub_dir)
 
@@ -58,9 +59,24 @@ class Nforge:
                 os.mkdir(download_data)
 
         if dev_code:
-            self.cookies = get_cookies()
+            # Get cookies from COOKIES file
+            self.cookies = dict()
+            nss_tok = 'nssTok'
 
-        self.url = self.nforge_urls[dev_code]
+            try:
+                with open(self.COOKIE_PATH) as f:
+                    cookie_list = [cookie for cookie in f]
+
+                for cookie in cookie_list:
+                    cookie_split = cookie.split(' ')
+                    self.cookies[cookie_split[0]] = cookie_split[1].replace('\n', '')
+            except FileNotFoundError:
+                self.cookies[nss_tok] = str(input(nss_tok + ' : '))
+
+                with open(self.COOKIE_PATH, 'w') as f:
+                    f.write(nss_tok + ' ' + self.cookies[nss_tok])
+
+        self.url = self.NFORGE_URLS[dev_code]
         self.name = project_name
 
         self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
@@ -145,7 +161,7 @@ class Nforge:
         return code_info_json
 
     def wiki(self):
-        wiki_path = os.path.join(self.path, ISSUES_DIR, self.sub_dirs[0])
+        wiki_path = os.path.join(self.path, ISSUES_DIR, self.SUB_DIRS[0])
         attach_file_path = os.path.join(wiki_path, ISSUE_ATTACH_DIR)
 
         if not os.path.exists(attach_file_path):
@@ -218,11 +234,11 @@ class Nforge:
 
             get_board_request = requests.request("GET", url, cookies=self.cookies)
             parsed_board = making_soup(get_board_request.content, 'xml')
-            doc_ids = [id_tag.get_text() for id_tag in parsed_board.findAll(self.id_tags[is_download])]
+            doc_ids = [id_tag.get_text() for id_tag in parsed_board.findAll(self.ID_TAGS[is_download])]
 
             progress_bar = tqdm(doc_ids)
 
-            xml_path = os.path.join(self.paths[is_download], self.sub_dirs[1], board if not is_download else '')
+            xml_path = os.path.join(self.paths[is_download], self.SUB_DIRS[1], board if not is_download else '')
 
             if not os.path.exists(xml_path) and not is_download:
                 os.mkdir(xml_path)

@@ -4,21 +4,18 @@ import json
 import mimetypes
 import os
 import subprocess
-import sys
 import time
+from urllib.parse import urlparse
+
 import click
 import github3
 import grequests
 import requests
 from github3.exceptions import GitHubError
-from .helper import get_fn, chunks
-from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-if sys.version_info[0] == 3:
-    from urllib.parse import urlparse
-else:
-    from urlparse import urlparse
+from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
+from .helper import get_fn, chunks
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -194,7 +191,7 @@ class GithubMigration(GitHubSession):
 
     def downloads_migration(self):
         while not self.check_repo_migration():
-            click.echo('%d초마다 Repo migration 상태를 체크합니다' % WAIT_TIME)
+            click.echo('Checking repository migration status every %d seconds.' % WAIT_TIME)
             time.sleep(WAIT_TIME)
 
         for download_dict in self.downloads.values():

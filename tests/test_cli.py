@@ -1,12 +1,12 @@
 import unittest
 
-from cli.input_token import confirm_token
+from cli.github_token_cli import confirm_token
 
 
 class TestCli(unittest.TestCase):
     def test_confirm_token(self):
-        self.assertTrue(confirm_token('fd7afb7372aef5c3a05f9f5a32aa5f115588364c', False))
-        self.assertTrue(confirm_token('a16bfcb042036d803058519a86497a5a3f976f80', True))
+        self.assertTrue(confirm_token('95fa8005a49d88436e2873dcd2aaab544fd8c699', False))
+        self.assertTrue(confirm_token('62cef9714d6673576e38fc50fb532623b74f54cb', True))
 
         self.assertFalse(confirm_token('asg90asdi', False))
         self.assertFalse(confirm_token('sdfghsdhd', True))

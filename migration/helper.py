@@ -10,9 +10,9 @@ def making_soup(content, doc_type):
 
 def get_fn(path, mode=None):
     """
-    :param path: 파일의 경로
-    :param mode: 인덱스
-    :return: mode 가 None이면 풀 파일이름 숫자면 오직 이름 혹은 확장자
+    :param path: Path of file
+    :param mode: See below
+    :return: mode: None -> Full file name , mode:0 -> Only file name mode: 1 -> Extension
     """
     if mode is None:
         return os.path.basename(path)
@@ -23,7 +23,6 @@ def get_fn(path, mode=None):
             return os.path.splitext(os.path.basename(path))[mode]
 
 
-# Version name 을 어떻게든 얻어보고자 고군분투하는 함수
 def get_version(repo_name, title):
     temp = title.upper().replace(repo_name.upper(), '')
     try:

@@ -5,12 +5,36 @@ import os
 from urllib.parse import urlparse
 
 import requests
+import time
+from requests import request
+from tqdm import tqdm
+
 from cli import DATA_DIR
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
 from migration.helper import making_soup, make_dirs
-from migration.nforge_object import Milestone
-from requests import request
-from tqdm import tqdm
+
+
+class Milestone:
+    def __init__(self, milestone):
+        self.id = milestone.id.get_text()
+        self.group_artifact_id = milestone.group_artifact_id.get_text()
+        self.features = milestone.features.get_text()
+        self.due_date = milestone.duedate.get_text()
+        self.status = milestone.status.get_text()
+
+        status = 'open' if self.status is 'PROGRESS' else 'closed'
+
+        self.json = json.dumps(
+            dict(
+                title=self.features,
+                state=status,
+                description=self.features,
+                due_on=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.localtime(int(self.due_date)))
+            )
+        )
+
+    def __str__(self):
+        return self.json
 
 
 class InvalidProjectError(Exception):
@@ -18,11 +42,10 @@ class InvalidProjectError(Exception):
         self.pr_name = pr_name
 
     def __str__(self):
-        not_found_project_msg = '{0}는 없는 프로젝트입니다.'.format(self.pr_name)
+        not_found_project_msg = '{0} does not exist.'.format(self.pr_name)
         return not_found_project_msg
 
 
-# html 을 파싱해서 최대한 정보를 뺴와야 함
 class Nforge:
     cookies = None
     SUB_DIRS = ['raw', 'xml', 'json']
@@ -33,11 +56,6 @@ class Nforge:
     COOKIE_PATH = os.path.join(DATA_DIR, COOKIE_FILE)
 
     def __init__(self, project_name, dev_code):
-        """
-        Nforge 객체의 생성자
-        :param project_name: 프로젝트 이름
-        :param dev_code: DevCode 프로젝트인지
-        """
         project_type = 'dev_code' if dev_code else 'open_project'
         self.path = os.path.join(Nforge.__name__, project_type, project_name)
         self.issues_path = os.path.join(self.path, ISSUES_DIR)
@@ -103,14 +121,14 @@ class Nforge:
         types = ['issue', 'forum', 'download']
 
         for parse_type in types:
-            # 게시판 및 이슈 목록
+            # Board and issue list
             url = '{0}/{1}'.format(self.project_url, parse_type)
             r = request("GET", url, cookies=self.cookies)
 
-            # HTML 파싱
+            # HTML parsing
             soup = making_soup(r.content, 'html')
-            # 각 issue, forum, download 타입에 따라서
-            # 선택된 클래스를 받아온다
+
+            # Get selected class by each parse_type
             cond_class = 'menu_{0} on selected'.format(parse_type)
             class_list = soup.find(class_=cond_class)
 
@@ -135,12 +153,12 @@ class Nforge:
         netloc = urlparse(self.url).netloc
         url = netloc.replace('staging.', '')
 
-        # staging. 으로 시작하면 migration 이 되지 않음..
+        # Cannot migrate if url starts with staging.
         if self.vcs is 'git':
             vcs_username = 'nobody'
             vcs_password = 'nobody'
             vcs = 'git'
-            # git 은 반드시 https 프로토콜로 넘기기!!
+            # git must use https protocol
             vcs_url = 'https://{3}:{3}@{2}/{0}/{1}.{0}'.format(vcs, self.name, url, vcs_username)
         else:
             vcs_username = 'anonsvn'
@@ -175,7 +193,8 @@ class Nforge:
             wiki_request = request("GET", url, cookies=self.cookies).content
             doc_name = a_tag['title']
 
-            # 위키가 비공개라 text area 태그를 받아오지 못하는 경우가 간혹 있음
+            # Except error for private wiki
+            # Private wiki cannot get text area tag
             try:
                 wiki_content = making_soup(wiki_request, 'html').textarea.get_text()
             except AttributeError:

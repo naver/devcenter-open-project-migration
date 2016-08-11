@@ -7,22 +7,41 @@ from cli import API_URLS, DATA_DIR, FILE_NAMES
 
 
 def get_file_path(file_type, enterprise):
+    """
+    Get file path by file type and enterprise
+    :param file_type: Some file type (token ...)
+    :param enterprise: Is GitHub enterprise
+    :return: Path of file
+    """
     return os.path.join(DATA_DIR, FILE_NAMES[file_type][enterprise])
 
 
 def confirm_token(token, enterprise):
+    """
+    Confirm token
+    :param token: Github token
+    :param enterprise: Is enterprise
+    :return: Is github token valid.
+    """
     url = API_URLS[enterprise] + 'user?access_token=' + token
     return True if requests.request("GET", url).status_code is 200 else False
 
 
 def token_to_file(token, file_path, enterprise):
-    # 토큰이 유효하지 않으면 맞을 때까지 입력
+    """
+    Save token to file
+    :param token: GitHub token
+    :param file_path: Path of token file.
+    :param enterprise: Is enterprise?
+    :return: token
+    """
 
+    # Input token while token is valid.
     while not confirm_token(token, enterprise):
-        click.echo(click.style(token + ' 토큰이 잘못되었습니다!!', fg='red'))
-        token = click.prompt('새 토큰을 입력하세요')
+        click.echo(click.style(token + ' is a invalid token!!', fg='red'))
+        token = click.prompt('Please input new token')
 
-    # 토큰을 파일로 입력
+    # Input token to file.
     with open(file_path, 'w') as token_file:
         token_file.write(token)
 
@@ -30,6 +49,12 @@ def token_to_file(token, file_path, enterprise):
 
 
 def read_token_from_file(file_path, enterprise):
+    """
+    Read token from file
+    :param file_path: Path of token file
+    :param enterprise: Is enterprise?
+    :return: Token or call other function
+    """
     token = str()
 
     try:
@@ -42,9 +67,9 @@ def read_token_from_file(file_path, enterprise):
 
 
 @click.command()
-@click.option('--token', help='토큰 입력')
+@click.option('--token', help='Input token')
 @click.option('--enterprise', help='GitHub Enterprise mode', is_flag=True, default=False)
-def github_token(token, enterprise):
+def github_token_cli(token, enterprise):
     """ Managing your GitHub and GitHub ENTERPRISE TOKEN. """
     token_file_path = get_file_path('token', enterprise)
 
@@ -52,10 +77,7 @@ def github_token(token, enterprise):
 
     valid_token = token_to_file(token, token_file_path, enterprise) if token \
         else read_token_from_file(token_file_path, enterprise)
-    click.echo(valid_token + click.style(' 은 유효한 ' + msg + ' 토큰입니다', fg='blue'))
+    click.echo(valid_token + click.style(' is valid ' + msg + ' token', fg='blue'))
 
 if __name__ == '__main__':
-    if not os.path.exists(DATA_DIR):
-        os.mkdir(DATA_DIR)
-
-    github_token()
+    github_token_cli()

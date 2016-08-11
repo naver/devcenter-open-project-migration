@@ -4,9 +4,8 @@ import json
 import mimetypes
 import os
 import subprocess
+import sys
 import time
-from urllib.parse import urlparse
-
 import click
 import github3
 import grequests
@@ -15,6 +14,11 @@ from github3.exceptions import GitHubError
 from .helper import get_fn, chunks
 from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+if sys.version_info[0] == 3:
+    from urllib.parse import urlparse
+else:
+    from urlparse import urlparse
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 

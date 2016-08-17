@@ -5,6 +5,8 @@ import mimetypes
 import os
 import subprocess
 import time
+
+from future.backports.urllib.parse import urljoin
 from future.moves.urllib.parse import urlparse
 
 import click
@@ -28,6 +30,13 @@ class GitHubSession:
     urls = ['https://github.com', 'https://oss.navercorp.com']
 
     def __init__(self, token, enterprise, repo_name, path):
+        """
+
+        :param token: GitHub token
+        :param enterprise: Is enterprise
+        :param repo_name: GitHub repository name
+        :param path: Nforge path
+        """
         self.url = self.urls[enterprise]
         self.token = token
         self.enterprise = enterprise
@@ -46,14 +55,6 @@ class GitHubSession:
             self.repo = self.session.create_repo(repo_name)
 
         self.repo_name = repo_name
-
-    def make_github_info(self):
-        with open(os.path.join(self.path, 'github_info.json'), 'w') as github_info:
-            json.dump(dict(
-                enterprise=self.enterprise,
-                token=self.token,
-                repo_name=self.repo_name
-            ), github_info)
 
 
 class GithubMigration(GitHubSession):
@@ -102,8 +103,7 @@ class GithubMigration(GitHubSession):
 
         for fn in json_list:
             with open(fn) as json_text:
-                read_file = json_text.read()
-                files.append(read_file)
+                files.append(json_text.read().replace('{0}', self.url+'/'+self.username+'/'+self.repo_name))
 
         return files
 
@@ -206,8 +206,7 @@ class GithubMigration(GitHubSession):
             prerelease = description['prerelease']
 
             try:
-                release = self.repo.create_release(tag_name, target_commitish, name, body,
-                                                   draft, prerelease)
+                release = self.repo.create_release(tag_name, target_commitish, name, body, draft, prerelease)
 
                 for file in files:
                     release.upload_asset('multipart/form-data', file['name'], file['raw'])

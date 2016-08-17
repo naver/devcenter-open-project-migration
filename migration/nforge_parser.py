@@ -17,9 +17,8 @@ class NforgeParser:
     print_type = "%Y/%m/%d %H:%M:%S"
     github_type = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self, github_session, **kwargs):
-        self.github_session = github_session
-        self.path = github_session.path
+    def __init__(self, path, **kwargs):
+        self.path = path
 
         with open(os.path.join(self.path, 'project_info.json')) as pr_info:
             info = json.load(pr_info)
@@ -51,9 +50,6 @@ class NforgeParser:
         self.downloads = {
             release_id: making_soup(download, 'xml') for release_id, download in self.raw_downloads.items()
             }
-
-        self.file_link_basis = '{0}/{1}/{2}/wiki/attachFile'.format(github_session.url, github_session.username,
-                                                                    github_session.repo_name)
 
     def make_issue_json(self):
         for doc_type, issues in self.issues.items():
@@ -180,7 +176,7 @@ class NforgeParser:
                         f.write(downloaded.content)
 
                 file_path = '/{0}/{1}/{2}'.format(content_id, fid, fn_md5)
-                github_link = self.file_link_basis + file_path
+                github_link = '{0}/wiki/attachFile' + file_path
 
                 mime_type = mimetypes.guess_type(fn)[0]
 

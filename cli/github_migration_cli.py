@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
-import json
 import os
 import webbrowser
 
 import click
 from cli import CUR_DIR, PARSING_OUTPUT_DIR
+from cli.github_token_cli import get_file_path, read_token_from_file
 from migration.github import GitHubSession, GithubMigration
 
 
 @click.command()
+@click.option('--repo_name', prompt=True, help='GitHub repository name')
+@click.option('--enterprise', help='Is it Github enterprise repository?', is_flag=True, default=False)
 @click.option('--open_project', help='Is DevCode project', is_flag=True, prompt=True)
-def github_migration_cli(open_project):
+def github_migration_cli(open_project, enterprise, repo_name):
     """ GitHub Repository management """
 
     # Change current directory to root directory
@@ -44,15 +46,9 @@ def github_migration_cli(open_project):
             click.echo('%d is not valid number' % idx)
 
     project_path = os.path.join(nforge_path, project_name)
+    valid_token = read_token_from_file(get_file_path('token', enterprise), enterprise)
 
-    with open(os.path.join(project_path, 'github_info.json')) as github_info:
-        project_info = json.load(github_info)
-
-    token = project_info['token']
-    repo_name = project_info['repo_name']
-    enterprise = project_info['enterprise']
-
-    gh = GitHubSession(token, enterprise, repo_name, project_path)
+    gh = GitHubSession(valid_token, enterprise, repo_name, project_path)
 
     is_wiki = click.prompt('Did you made a wiki?(y/n)', type=bool)
 

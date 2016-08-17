@@ -7,7 +7,6 @@ from migration.nforge_parser import NforgeParser
 
 
 class TestNforgeParser(unittest.TestCase):
-    os.chdir('..')
     path = os.path.join('Nforge', 'open_project', 'd2coding')
     nfp = NforgeParser(path)
 

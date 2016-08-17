@@ -6,17 +6,15 @@ import os
 import subprocess
 import time
 
-from future.backports.urllib.parse import urljoin
-from future.moves.urllib.parse import urlparse
-
 import click
 import github3
 import grequests
 import requests
+from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
+from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from .helper import get_fn, chunks
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -26,12 +24,52 @@ def exception_handler(request, exception):
     print(request.text, exception)
 
 
+class InvalidTokenError(Exception):
+    pass
+
+
+class GitHubToken:
+    token_file_names = ('data/GITHUB_ACCESS_TOKEN', 'data/ENTERPRISE_ACCESS_TOKEN')
+    api_urls = ('https://api.github.com/', 'https://oss.navercorp.com/api/v3/')
+
+    def __init__(self, enterprise, **kwargs):
+        self.__path = self.token_file_names[enterprise]
+        self.__enterprise = enterprise
+        self.__token = kwargs.get('token')
+
+        if self.__token:
+            with open(self.path, 'w') as token_file:
+                token_file.write(self.confirm_token(self.__token))
+        else:
+            with open(self.path) as token_file:
+                self.__token = self.confirm_token(token_file.read())
+
+    def confirm_token(self, token):
+        confirm_url = self.api_urls[self.enterprise] + 'user?access_token=' + token
+
+        if not requests.request("GET", confirm_url).status_code is 200:
+            raise InvalidTokenError
+        else:
+            return token
+
+    @property
+    def token(self):
+        return self.__token
+
+    @property
+    def path(self):
+        return self.__path
+
+    @property
+    def enterprise(self):
+        return self.__enterprise
+
+
 class GitHubSession:
     urls = ['https://github.com', 'https://oss.navercorp.com']
 
     def __init__(self, token, enterprise, repo_name, path):
         """
-
         :param token: GitHub token
         :param enterprise: Is enterprise
         :param repo_name: GitHub repository name

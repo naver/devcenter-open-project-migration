@@ -7,7 +7,6 @@ from migration.github import GitHubSession, GithubMigration
 
 
 class TestGitHub(unittest.TestCase):
-    os.chdir('..')
     path = os.path.join('Nforge', 'open_project', 'd2coding')
     enterprise = False
     valid_token = read_token_from_file(get_file_path('token', enterprise), enterprise)

@@ -1,5 +1,42 @@
-# Open Project Migration
-[네이버 오픈 프로젝트](http://dev.naver.com/projects)를 GitHub로 migration 하는 CLI(Comamnd Line Interface) 프로그램입니다.
+# 네이버 개발자센터 오픈 프로젝트 마이그레이션
+[네이버 개발자센터의 오픈 프로젝트](http://dev.naver.com/projects)를 GitHub로 마이그레이션하는 CLI(Comamnd Line Interface) 프로그램입니다.
+
+## 마이그레이션 스펙
+* 오픈 프로젝트에서 가져온 이슈/게시판/댓글, 첨부파일등은 모두 **nForge/open_project/프로젝트명** 에 저장됩니다.
+
+### 프로젝트 홈/위키
+* 프로젝트 홈에 있는 문서 및 작성하신 위키는 Markdown(.md) 파일로 변환되어 GitHub Wiki에 저장됩니다. 원본파일에서 확장자만 바꾼 것이므로 기본적으로 Markdown을 사용하는 GitHub Wiki에서 글을 확인할 때 렌더링이 잘못 되어 보일 수 있습니다.
+* 프로젝트 정보 및 로고 마이그레이션은 지원하지 않습니다. 개발자 명단을 옮기는 것은 현재 개발중입니다.
+
+### 마일스톤
+* 마일스톤 명단은 GitHub 이슈의 마일스톤으로 옮겨집니다. 
+* 마일스톤이 어느 이슈에 링크되었는지 여부는 아직 지원하지 않습니다.
+
+### 게시판/이슈
+* 모두 GitHub issue로 옮겨집니다. GitHub Label을 통해 이슈/게시판 분류를 확인할 수 있습니다. 해결/닫힘인 이슈들은 closed 이슈, 해결중인 이슈들은 open 이슈로 분류됩니다.
+* 아래와 같은 형식으로 이슈/게시판/댓글 이 옮겨집니다.
+ ```markdown
+ This (issue/comment) created by **(작성자)** and assigned to **(담당자)** | (작성시간)
+
+ ------
+ (이슈 본문)
+ -----
+ ### Attachments
+ * (첨부파일명)
+ 
+ 	![(첨부파일명)]((첨부파일링크))
+ 	...
+ ```
+* 이슈/게시판의 첨부파일은 GitHub 위키 저장소에 저장됩니다.
+
+### 코드
+* 프로젝트의 git/SVN 저장소가 GitHub로 옮겨집니다.
+* GitHub는 SVN 방식의 디렉토리 구조를 따르지 않으므로 GitHub에서 저장소 구조가 조금 달라보일 수 있습니다.
+* [GitHub에서 SVN 클라이언트 이용하기](https://help.github.com/articles/support-for-subversion-clients/)
+
+### 다운로드
+* GitHub의 Release로 옮겨집니다.
+* 버전 라벨이 원래 프로젝트와 조금 다를 수 있지만 순서는 일치합니다.
 
 ## Dependencies
 * Python 2.7 이상

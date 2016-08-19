@@ -25,96 +25,58 @@ def exception_handler(request, exception):
 
 
 class InvalidTokenError(Exception):
-    pass
-
-
-class GitHubToken:
-    token_file_names = ('data/GITHUB_ACCESS_TOKEN', 'data/ENTERPRISE_ACCESS_TOKEN')
-    api_urls = ('https://api.github.com/', 'https://oss.navercorp.com/api/v3/')
-
-    def __init__(self, enterprise, **kwargs):
-        self.__path = self.token_file_names[enterprise]
-        self.__enterprise = enterprise
-        self.__token = kwargs.get('token')
-
-        if self.__token:
-            with open(self.path, 'w') as token_file:
-                token_file.write(self.confirm_token(self.__token))
-        else:
-            with open(self.path) as token_file:
-                self.__token = self.confirm_token(token_file.read())
-
-    def confirm_token(self, token):
-        confirm_url = self.api_urls[self.enterprise] + 'user?access_token=' + token
-
-        if not requests.request("GET", confirm_url).status_code is 200:
-            raise InvalidTokenError
-        else:
-            return token
-
-    @property
-    def token(self):
-        return self.__token
-
-    @property
-    def path(self):
-        return self.__path
-
-    @property
-    def enterprise(self):
-        return self.__enterprise
-
-
-class GitHubSession:
-    urls = ['https://github.com', 'https://oss.navercorp.com']
-
-    def __init__(self, token, enterprise, repo_name, path):
-        """
-        :param token: GitHub token
-        :param enterprise: Is enterprise
-        :param repo_name: GitHub repository name
-        :param path: Nforge path
-        """
-        self.url = self.urls[enterprise]
+    def __init__(self, token):
         self.token = token
-        self.enterprise = enterprise
-        self.path = path
-        self.cur_dir = os.path.abspath(os.curdir)
 
-        self.session = github3.login(token=token) \
-            if not enterprise else github3.GitHubEnterprise(self.url, token=token)
-
-        self.api_url = self.session.__dict__['_session'].__dict__['base_url']
-
-        self.username = self.session.user().login
-        self.repo = self.session.repository(owner=self.username, repository=repo_name)
-
-        if not self.repo:
-            self.repo = self.session.create_repo(repo_name)
-
-        self.repo_name = repo_name
+    def __str__(self):
+        return repr(self.token)
 
 
-class GithubMigration(GitHubSession):
+class GitHubMigration:
     header_basis = {
         'authorization': "token ",
         'content-type': "application/json",
     }
 
-    def __init__(self, **kwargs):
-        # 헤더 정의
-        session = kwargs.get('session')
+    def __init__(self, enterprise, repo_name, project_path, **kwargs):
+        provider = 'oss.navercorp' if enterprise else 'github'
 
-        if not session:
-            token = kwargs.get('token')
-            enterprise = kwargs.get('enterprise')
-            repo_name = kwargs.get('repo_name')
-            path = kwargs.get('path')
+        self.__url = 'https://{0}.com'.format(provider)
+        url_parsed = urlparse(self.__url)
 
-            super(GithubMigration, self).__init__(token, enterprise, repo_name, path)
+        self.__api_url = self.__url + '/api/v3/' if enterprise \
+            else url_parsed.scheme + '://api.{0}/'.format(url_parsed.netloc)
+        self.__token_file_path = 'data/{0}_ACCESS_TOKEN'.format(provider)
+        self.__enterprise = enterprise
+        self.__token = kwargs.get('token')
+        self.__repo_name = repo_name
+        self.__project_path = project_path
+        self.__cur_dir = os.path.abspath(os.curdir)
+
+        # if token passed by parameter write to file after confirming token
+        # else read file and confirming that token
+        # if token is invalid raise InvalidTokenError
+        if self.__token:
+            self.confirm_token(self.__token)
+            # After confirming token and writing file
+            mode = 'w'
         else:
-            for k, v in session.__dict__.items():
-                self.__dict__[k] = v
+            mode = 'r'
+
+        with open(self.token_file_path, mode) as token_file:
+            if mode == 'w':
+                token_file.write(self.__token)
+            else:
+                self.__token = self.confirm_token(token_file.read())
+
+        self.__session = github3.GitHub(token=self.__token) if not enterprise \
+            else github3.GitHubEnterprise(self.__url, token=self.__token)
+
+        self.__username = self.__session.user().login
+        self.__repo = self.__session.repository(owner=self.__username, repository=self.__repo_name)
+
+        if not self.__repo:
+            self.__session.create_repo(self.repo_name)
 
         self.header_basis['authorization'] += self.token
 
@@ -133,10 +95,62 @@ class GithubMigration(GitHubSession):
         self.issues = self.read_issue_json()
         self.downloads = self.read_downloads()
 
+    def confirm_token(self, token):
+        confirm_url = self.__api_url + 'user?access_token=' + token
+
+        if not requests.request("GET", confirm_url).status_code is 200:
+            raise InvalidTokenError(token)
+        else:
+            return token
+
+    @property
+    def token(self):
+        return self.__token
+
+    @property
+    def token_file_path(self):
+        return self.__token_file_path
+
+    @property
+    def enterprise(self):
+        return self.__enterprise
+
+    @property
+    def url(self):
+        return self.__url
+
+    @property
+    def api_url(self):
+        return self.__api_url
+
+    @property
+    def session(self):
+        return self.__session
+
+    @property
+    def repo_name(self):
+        return self.__repo_name
+
+    @property
+    def username(self):
+        return self.__username
+
+    @property
+    def repo(self):
+        return self.__repo
+
+    @property
+    def project_path(self):
+        return self.__project_path
+
+    @property
+    def cur_dir(self):
+        return self.__cur_dir
+
     def read_issue_json(self):
         files = []
 
-        path = os.path.join(self.path, ISSUES_DIR, 'json', '*.json')
+        path = os.path.join(self.project_path, ISSUES_DIR, 'json', '*.json')
         json_list = glob.glob(path)
 
         for fn in json_list:
@@ -146,7 +160,7 @@ class GithubMigration(GitHubSession):
         return files
 
     def read_downloads(self):
-        downloads_path = os.path.join(self.path, DOWNLOADS_DIR)
+        downloads_path = os.path.join(self.project_path, DOWNLOADS_DIR)
         json_path = os.path.join(downloads_path, 'json', '*.json')
         raw_path = os.path.join(downloads_path, 'raw')
 
@@ -198,7 +212,7 @@ class GithubMigration(GitHubSession):
         github = urlparse(self.url).netloc
         push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(self.username, self.token, self.repo_name, github)
 
-        os.chdir(os.path.join(self.path, ISSUES_DIR, 'raw'))
+        os.chdir(os.path.join(self.project_path, ISSUES_DIR, 'raw'))
 
         git_commands = [
             ['git', 'init'],
@@ -215,7 +229,7 @@ class GithubMigration(GitHubSession):
         os.chdir(self.cur_dir)
 
     def repo_migration(self):
-        with open(os.path.join(self.path, CODE_INFO_FILE)) as code_info:
+        with open(os.path.join(self.project_path, CODE_INFO_FILE)) as code_info:
             r = requests.request("PUT", self.import_repo_url, data=code_info.read().encode('utf-8'),
                                  headers=self.repo_header)
 

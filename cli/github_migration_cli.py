@@ -4,7 +4,7 @@ import webbrowser
 
 import click
 from cli import CUR_DIR, PARSING_OUTPUT_DIR
-from migration.github import GitHubSession, GithubMigration, GitHubToken, InvalidTokenError
+from migration.github import GitHubMigration, InvalidTokenError
 
 
 @click.command()
@@ -13,7 +13,7 @@ from migration.github import GitHubSession, GithubMigration, GitHubToken, Invali
 @click.option('--enterprise', help='Is it Github enterprise repository?', is_flag=True, default=False)
 @click.option('--open_project', help='Is DevCode project', is_flag=True, prompt=True)
 def github_migration_cli(open_project, enterprise, repo_name, token):
-    """ GitHub Repository management """
+    """ GitHub migration management """
 
     # Change current directory to root directory
     os.chdir(CUR_DIR)
@@ -47,20 +47,17 @@ def github_migration_cli(open_project, enterprise, repo_name, token):
             project_path = os.path.join(nforge_path, project_name)
 
             try:
-                token_manage = GitHubToken(token=token, enterprise=enterprise)
+                ghm = GitHubMigration(token=token, enterprise=enterprise, repo_name=repo_name,
+                                      project_path=project_path)
             except InvalidTokenError:
                 click.echo(click.style(token + ' is a invalid token!!', fg='red'))
                 exit()
             else:
-                valid_token = token_manage.token
-                click.echo(valid_token + click.style(' is valid token', fg='blue'))
-
-                gh = GitHubSession(valid_token, enterprise, repo_name, project_path)
-
+                click.echo(ghm.token + click.style(' is valid token', fg='blue'))
                 is_wiki = click.prompt('Did you made a wiki?(y/n)', type=bool)
 
                 if not is_wiki:
-                    wiki_create_page_url = '{2}/{0}/{1}/wiki/_new'.format(gh.username, gh.repo_name, gh.url)
+                    wiki_create_page_url = '{2}/{0}/{1}/wiki/_new'.format(ghm.username, ghm.repo_name, ghm.url)
 
                     # 위키 페이지를 만들 수 있도록 자동으로 웹 브라우저를 열어줌
                     if webbrowser.open(wiki_create_page_url):
@@ -71,17 +68,15 @@ def github_migration_cli(open_project, enterprise, repo_name, token):
                         click.echo('Please go to ' + click.style(wiki_create_page_url +
                                                                  'and click save page button', fg='green'))
 
-                gm = GithubMigration(session=gh)
-
-                if not gm.issues_migration():
+                if not ghm.issues_migration():
                     click.echo('Issue and board migration has failed')
 
                 # Only open project and GitHub repo do repo and downloads migration.
                 if is_open_project and not enterprise:
-                    if not gm.repo_migration():
+                    if not ghm.repo_migration():
                         click.echo('Source code repository migration has failed')
 
-                    if not gm.downloads_migration():
+                    if not ghm.downloads_migration():
                         click.echo('Download migration has failed.')
 
 if __name__ == '__main__':

@@ -1,9 +1,5 @@
 # Open Project Migration
-[네이버 오픈 프로젝트](http://dev.naver.com/projects)를 GitHub로 migration 하는 CLI(Comamnd Line Interface) 프로그램입니다. 아래와 같은 기능을 갖추고 있습니다.
-
-1. 게시판, 이슈의 첨부파일들을 포함한 글과 댓글들을 GitHub 이슈로 마이그레이션.
-2. 다운로드의 게시물과 파일들을 GitHub 릴리즈로 마이그레이션.
-3. Git/SVN 소스코드 저장소 마이그레이션.
+[네이버 오픈 프로젝트](http://dev.naver.com/projects)를 GitHub로 migration 하는 CLI(Comamnd Line Interface) 프로그램입니다.
 
 ## Dependencies
 * Python 2.7 이상
@@ -34,12 +30,18 @@
 * 위에서 만든 저장소의 위키를 만들어주세요. **[참고](https://help.github.com/articles/adding-wiki-pages-via-the-online-interface/)**
 * 본 프로젝트를 git clone 혹은 다운로드 해주세요.
 * 압축을 풀어주세요.(git clone 하셨을 경우 필요 없음)
-* [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) Personal Access Token을 생성하신 후 프로젝트 디렉토리에 **data**라는 디렉토리를 만드시고 **GITHUB_ACCESS_TOKEN**이라는 파일에 토큰을 넣어주세요. (파일을 만들지 않으시면 프로그램에서 토큰을 물어보는데 이때 토큰을 입력해주세요)
-* **중요!!** 현재 XML 파싱을 위해 [lxml](http://lxml.de/)을 사용하고 있습니다. 윈도우 사용자 분들은 *반드시 [이 링크](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml)로 가셔서* 적절한 lxml whl 파일을 다운로드 해주시고 나서 터미널에서 pip로 설치해주시면 됩니다.
-  > pip install lxml_파일명
+* [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) Personal Access Token을 생성하신 후 프로젝트 디렉토리에 **data**라는 디렉토리를 만드시고 **github_ACCESS_TOKEN**이라는 파일에 토큰을 넣어주세요.
+* Python 가상환경 구축 후 pip 를 통해 프로그램을 설치해주세요.
 
-* 역시 터미널에서 pip 를 이용해 프로그램을 설치해주세요.
-  > $ pip install --editable .
+ ``` sh
+ $ virtualenv venv # python2 및 윈도우 사용자
+ $ pyvenv venv # python3 사용자
+ > . venv/bin/activate # *nix 계열
+ > . venv\Scripts\activate # Windows
+ $ pip install lxml_파일명 # Windows 사용자만 해당, 아래 참고
+ $ pip install --editable .
+ ```
+* **윈도우 사용자 필독!!** 현재 XML 파싱을 위해 [lxml](http://lxml.de/)을 사용하고 있습니다. 윈도우 사용자 분들은 *반드시 [이 링크](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml)로 가셔서* 적절한 lxml whl 파일을 다운로드 해주시고 나서 터미널에서 pip로 설치해주시면 됩니다.
 
 * *npa --help* 명령어를 입력하셨을 때 아래 옵션들이 보이시면 잘 설치된 겁니다.
 
@@ -53,6 +55,7 @@
     --dev_code           Is DevCode project
     --help               Show this message and exit.
     ```
+* 혹시 프로그램 설치에 문제점이 있으시다면 [이슈](https://oss.navercorp.com/communication-service/open-project-migration/issues)를 남겨주세요. 
 
 ## 마이그레이션 진행
 * DevCode 마이그레이션 시에는 **data/COOKIES** 라는 파일에 nssTok 쿠키를 입력하셔야 합니다. 이 파일이 존재하지 않는다면 프로그램에서 쿠키를 입력받습니다.
@@ -80,4 +83,4 @@
  ```
 
 ## 주의 사항
-* 빠른 시간 내에 많이 GitHub Migration을 시도하게되면 [Abuse Rate Limits](https://developer.github.com/v3/#abuse-rate-limits)가 일어나서 GitHub API를 호출할 수 없게 됩니다. 새로운 토큰을 발급하시거나 몇분 후에 다시 시도해주세요.
+* 빠른 시간 내에 많은 GitHub 마이그레이션을 수행하면 [Abuse Rate Limits](https://developer.github.com/v3/#abuse-rate-limits)가 발생해 일시적으로 GitHub API를 호출할 수 없게 됩니다. 새로운 토큰을 발급하시거나 몇분 후에 다시 시도해주세요.

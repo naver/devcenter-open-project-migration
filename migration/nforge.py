@@ -3,16 +3,15 @@ import json
 import logging
 import os
 import time
+from builtins import input
 
 import requests
-from builtins import input
-from future.moves.urllib.parse import urlparse
-from requests import request
-from tqdm import tqdm
-
 from cli import DIRS
+from future.moves.urllib.parse import urlparse
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
 from migration.helper import making_soup, make_dirs
+from requests import request
+from tqdm import tqdm
 
 
 class Milestone:
@@ -57,6 +56,16 @@ class Nforge:
     COOKIE_PATH = os.path.join(DIRS[0], COOKIE_FILE)
 
     def __init__(self, project_name, dev_code):
+        self.name = project_name
+        self.url = self.NFORGE_URLS[dev_code]
+
+        self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
+
+        self.project_main_html = requests.request('GET', self.project_url, cookies=self.cookies).content
+        self.project_main_soup = making_soup(self.project_main_html, 'html')
+
+        self.check_valid_project()
+
         project_type = 'dev_code' if dev_code else 'open_project'
         self.path = os.path.join(Nforge.__name__, project_type, project_name)
         self.issues_path = os.path.join(self.path, ISSUES_DIR)
@@ -94,14 +103,6 @@ class Nforge:
 
                 with open(self.COOKIE_PATH, 'w') as f:
                     f.write(nss_tok + ' ' + self.cookies[nss_tok])
-
-        self.url = self.NFORGE_URLS[dev_code]
-        self.name = project_name
-
-        self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
-
-        self.project_main_html = requests.request('GET', self.project_url, cookies=self.cookies).content
-        self.project_main_soup = making_soup(self.project_main_html, 'html')
 
         src_soup = making_soup(request("GET", self.project_url + '/src', cookies=self.cookies).content, 'html')
         self.vcs = 'svn' if src_soup.find('div', class_='code_contents') else 'git'
@@ -144,7 +145,7 @@ class Nforge:
         return urls
 
     def check_valid_project(self):
-        title = self.project_main_html.title.get_text()
+        title = self.project_main_soup.title.get_text()
         assert title is not None
 
         if '오류' in title:
@@ -275,6 +276,7 @@ class Nforge:
                     logging.error('{0} HAS REQUEST ERROR {1}'.format(doc_id, doc_requests.status_code))
                     continue
 
+                # Precaution of xml encoding error
                 xml_bytes = doc_requests.content.decode('utf-8', 'replace')
                 parsed_xml = xml_bytes.replace('&#13;', '\n')
                 xml_lists[is_download].append(parsed_xml)

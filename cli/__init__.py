@@ -11,6 +11,7 @@ CUR_DIR = os.getcwd()
 DIRS = ('data', 'logs', 'nforge')
 
 for dir_name in DIRS:
-    os.mkdir(dir_name)
+    if not os.path.exists(dir_name):
+        os.mkdir(dir_name)
 
 logging.basicConfig(filename=os.path.join(DIRS[1], time.strftime("%Y-%m-%d %H:%M:%S") + '.log'), level=logging.ERROR)

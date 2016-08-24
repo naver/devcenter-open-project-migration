@@ -13,3 +13,4 @@ ISSUES_DIR = 'issues'
 ISSUE_ATTACH_DIR = 'attachFile'
 MILESTONES_DIR = 'milestones'
 ok_code = re.compile('20\d')
+PARSING_OUTPUT_DIR = 'Nforge'

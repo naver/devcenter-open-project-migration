@@ -10,7 +10,7 @@ from future.moves.urllib.parse import urlparse
 from requests import request
 from tqdm import tqdm
 
-from cli import DATA_DIR
+from cli import DIRS
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
 from migration.helper import making_soup, make_dirs
 
@@ -54,7 +54,7 @@ class Nforge:
     ID_TAGS = ['artifact_id', 'release_id']
 
     COOKIE_FILE = 'COOKIES'
-    COOKIE_PATH = os.path.join(DATA_DIR, COOKIE_FILE)
+    COOKIE_PATH = os.path.join(DIRS[0], COOKIE_FILE)
 
     def __init__(self, project_name, dev_code):
         project_type = 'dev_code' if dev_code else 'open_project'

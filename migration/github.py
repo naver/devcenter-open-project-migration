@@ -6,7 +6,6 @@ import os
 import subprocess
 import time
 
-import click
 import github3
 import grequests
 import requests
@@ -243,7 +242,7 @@ class GitHubMigration:
 
     def downloads_migration(self):
         while not self.check_repo_migration():
-            click.echo('Checking repository migration status every %d seconds.' % WAIT_TIME)
+            print('Checking repository migration status every %d seconds.' % WAIT_TIME)
             time.sleep(WAIT_TIME)
 
         for download_dict in self.downloads.values():
@@ -264,7 +263,7 @@ class GitHubMigration:
                     release.upload_asset('multipart/form-data', file['name'], file['raw'])
 
             except GitHubError as e:
-                click.echo(e)
+                print(e)
                 return False
 
         return True

@@ -3,7 +3,7 @@ import os
 import webbrowser
 
 import click
-from cli import CUR_DIR, PARSING_OUTPUT_DIR
+from cli import CUR_DIR, DIRS
 from migration.github import GitHubMigration, InvalidTokenError
 
 
@@ -18,9 +18,9 @@ def github_migration_cli(open_project, enterprise, repo_name, token):
     # Change current directory to root directory
     os.chdir(CUR_DIR)
 
-    is_open_project = open_project
-    nforge_type = 'open_project' if is_open_project else 'dev_code'
-    nforge_path = os.path.join(os.path.join(PARSING_OUTPUT_DIR, nforge_type))
+    # get path of nforge parsed data
+    nforge_type = 'open_project' if open_project else 'dev_code'
+    nforge_path = os.path.join(os.path.join(DIRS[2], nforge_type))
 
     try:
         output_dirs = os.listdir(nforge_path)
@@ -72,7 +72,7 @@ def github_migration_cli(open_project, enterprise, repo_name, token):
                     click.echo('Issue and board migration has failed')
 
                 # Only open project and GitHub repo do repo and downloads migration.
-                if is_open_project and not enterprise:
+                if open_project and not enterprise:
                     if not ghm.repo_migration():
                         click.echo('Source code repository migration has failed')
 

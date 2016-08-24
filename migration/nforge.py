@@ -275,6 +275,7 @@ class Nforge:
                     logging.error('{0} HAS REQUEST ERROR {1}'.format(doc_id, doc_requests.status_code))
                     continue
 
+                # Precaution of xml encoding error
                 xml_bytes = doc_requests.content.decode('utf-8', 'replace')
                 parsed_xml = xml_bytes.replace('&#13;', '\n')
                 xml_lists[is_download].append(parsed_xml)

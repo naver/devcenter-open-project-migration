@@ -11,9 +11,9 @@ import grequests
 import requests
 from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
+from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from .helper import get_fn, chunks
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -45,7 +45,7 @@ class GitHubMigration:
 
         self.__api_url = self.__url + '/api/v3/' if enterprise \
             else url_parsed.scheme + '://api.{0}/'.format(url_parsed.netloc)
-        self.__token_file_path = 'data/{0}_ACCESS_TOKEN'.format(provider)
+        self.__token_file_path = os.path.join('data', '{0}_ACCESS_TOKEN').format(provider)
         self.__enterprise = enterprise
         self.__token = kwargs.get('token')
         self.__repo_name = repo_name
@@ -60,7 +60,12 @@ class GitHubMigration:
             # After confirming token and writing file
             mode = 'w'
         else:
-            mode = 'r'
+            if not os.path.exists(self.__token_file_path):
+                self.__token = str(input('Please input token: '))
+                self.confirm_token(self.__token)
+                mode = 'w'
+            else:
+                mode = 'r'
 
         with open(self.token_file_path, mode) as token_file:
             if mode == 'w':

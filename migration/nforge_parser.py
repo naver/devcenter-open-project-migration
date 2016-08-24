@@ -7,9 +7,9 @@ import time
 
 import requests
 from future.moves.urllib.parse import urljoin
+from migration import ISSUES_DIR, DOWNLOADS_DIR, ISSUE_ATTACH_DIR
 from tqdm import tqdm
 
-from migration import ISSUES_DIR, DOWNLOADS_DIR, ISSUE_ATTACH_DIR
 from .helper import making_soup, get_fn
 
 
@@ -254,13 +254,13 @@ class NforgeParser:
         download_paths = glob.glob(download_xml_path)
 
         for issue_fn in issue_paths:
-            doc_type = os.path.splitext(os.path.splitext(issue_fn)[0])[-1]
+            doc_type = os.path.split(os.path.split(issue_fn)[0])[-1]
 
-            with open(issue_fn) as f:
+            with open(issue_fn, encoding='utf-8') as f:
                 issue_files[doc_type].append(f.read())
 
         for download_path in download_paths:
-            with open(download_path) as f:
+            with open(download_path, encoding='utf-8') as f:
                 download_files[get_fn(download_path, 0)] = f.read()
 
         return issue_files, download_files

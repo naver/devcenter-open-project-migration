@@ -32,9 +32,8 @@
 * 압축을 풀어주세요.(git clone 하셨을 경우 필요 없음)
 * [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) Personal Access Token을 생성하신 후 프로젝트 디렉토리에 **data**라는 디렉토리를 만드시고 **github_ACCESS_TOKEN**이라는 파일에 토큰을 넣어주세요. (파일을 만들지 않으시면 프로그램에서 토큰을 물어보는데 이때 토큰을 입력해주세요)
 * **윈도우 사용자 필독!!** 현재 XML 파싱을 위해 [lxml](http://lxml.de/)을 사용하고 있습니다. 윈도우 사용자 분들은 *반드시 [이 링크](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml)로 가셔서* 적절한 lxml whl 파일을 다운로드 해주시고 나서 터미널에서 pip로 설치해주시면 됩니다.
-  > pip install lxml_파일명
 
-* 파이썬 가상환경(virtualenv)를 구축해주세요.
+* 파이썬 가상환경(virtualenv)를 구축해주세요. 윈도우 사용자분들은 virtualenv 사용을 권장드립니다.
   ```sh
   $ virtualenv venv # python2
   $ pyvenv venv # python3
@@ -43,6 +42,8 @@
   ```sh
   $ . venv/bin/activate # *nix
   $ venv\Scripts\activate # Windows
+  $ pip install lxml-3.6.4-cp35-cp35m-win32.whl  # Windows만 *nix 는 알아서 설치됨.
+  $ pip install bs4 # Windows만 *nix 는 알아서 설치됨.
   $ pip install --editable .
   ```
 

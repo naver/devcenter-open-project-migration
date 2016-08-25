@@ -4,9 +4,9 @@ import json
 import mimetypes
 import os
 import time
-from future.moves.urllib.parse import urljoin
 
 import requests
+from future.moves.urllib.parse import urljoin
 from tqdm import tqdm
 
 from migration import ISSUES_DIR, DOWNLOADS_DIR, ISSUE_ATTACH_DIR
@@ -254,8 +254,7 @@ class NforgeParser:
         download_paths = glob.glob(download_xml_path)
 
         for issue_fn in issue_paths:
-            split_path = issue_fn.replace(issue_basis_path, '').split('/')
-            doc_type = split_path[1]
+            doc_type = os.path.splitext(os.path.splitext(issue_fn)[0])[-1]
 
             with open(issue_fn) as f:
                 issue_files[doc_type].append(f.read())

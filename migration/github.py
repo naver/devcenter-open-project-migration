@@ -11,9 +11,9 @@ import grequests
 import requests
 from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
-from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
+from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from .helper import get_fn, chunks
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -75,7 +75,7 @@ class GitHubMigration:
         self.__repo = self.__session.repository(owner=self.__username, repository=self.__repo_name)
 
         if not self.__repo:
-            self.__session.create_repo(self.repo_name)
+            self.__repo = self.__session.create_repo(self.repo_name)
 
         self.header_basis['authorization'] += self.token
 
@@ -87,7 +87,7 @@ class GitHubMigration:
         self.issue_header['Accept'] = 'application/vnd.github.golden-comet-preview'
         self.repo_header['Accept'] = 'application/vnd.github.barred-rock-preview'
 
-        self.basis_repo_url = '{0}/repos/{1}/{2}'.format(self.api_url, self.username, self.repo_name)
+        self.basis_repo_url = '{0}repos/{1}/{2}'.format(self.api_url, self.username, self.repo_name)
         self.import_repo_url = self.basis_repo_url + '/import'
         self.import_issue_url = self.import_repo_url + '/issues'
 

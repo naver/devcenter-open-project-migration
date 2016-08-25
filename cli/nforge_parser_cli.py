@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-import os
 
 import click
-from cli import DATA_DIR
+
 from migration.nforge import Nforge
 from migration.nforge_parser import NforgeParser
 
@@ -14,9 +13,6 @@ def nforge_parser_cli(project_name, dev_code):
     """
     Command line interface for parsing Nforge project.
     """
-    if not os.path.exists(DATA_DIR):
-        os.mkdir(DATA_DIR)
-
     project = Nforge(project_name, dev_code)
     project.developers()
     project.code_info()

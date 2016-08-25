@@ -6,12 +6,13 @@ import time
 from builtins import input
 
 import requests
-from cli import DIRS
 from future.moves.urllib.parse import urlparse
-from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
-from migration.helper import making_soup, make_dirs
 from requests import request
 from tqdm import tqdm
+
+from cli import DIRS
+from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
+from migration.helper import making_soup, make_dirs
 
 
 class Milestone:
@@ -48,9 +49,9 @@ class InvalidProjectError(Exception):
 
 class Nforge:
     cookies = None
-    SUB_DIRS = ['raw', 'xml', 'json']
-    NFORGE_URLS = ['http://staging.dev.naver.com', 'http://devcode.nhncorp.com/']
-    ID_TAGS = ['artifact_id', 'release_id']
+    SUB_DIRS = ('raw', 'xml', 'json')
+    NFORGE_URLS = ('http://staging.dev.naver.com', 'http://devcode.nhncorp.com/')
+    ID_TAGS = ('artifact_id', 'release_id')
 
     COOKIE_FILE = 'COOKIES'
     COOKIE_PATH = os.path.join(DIRS[0], COOKIE_FILE)
@@ -101,7 +102,7 @@ class Nforge:
             except EnvironmentError:
                 self.cookies[nss_tok] = str(input(nss_tok + ' : '))
 
-                with open(self.COOKIE_PATH, 'w') as f:
+                with open(self.COOKIE_PATH, 'w', encoding='utf-8') as f:
                     f.write(nss_tok + ' ' + self.cookies[nss_tok])
 
         src_soup = making_soup(request("GET", self.project_url + '/src', cookies=self.cookies).content, 'html')
@@ -281,7 +282,7 @@ class Nforge:
                 parsed_xml = xml_bytes.replace('&#13;', '\n')
                 xml_lists[is_download].append(parsed_xml)
 
-                with open(os.path.join(xml_path, fn), 'w') as xml_file:
+                with open(os.path.join(xml_path, fn), 'w', encoding='utf-8') as xml_file:
                     xml_file.write(parsed_xml)
 
         return xml_lists

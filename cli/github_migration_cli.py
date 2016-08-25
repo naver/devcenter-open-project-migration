@@ -3,6 +3,7 @@ import os
 import webbrowser
 
 import click
+
 from cli import CUR_DIR, DIRS
 from migration.github import GitHubMigration, InvalidTokenError
 
@@ -22,10 +23,12 @@ def github_migration_cli(open_project, enterprise, repo_name, token):
     nforge_type = 'open_project' if open_project else 'dev_code'
     nforge_path = os.path.join(os.path.join(DIRS[2], nforge_type))
 
+    print(nforge_path)
+
     try:
         output_dirs = os.listdir(nforge_path)
     except EnvironmentError:
-        click.echo('Please parse at lease one %s project...' % nforge_type)
+        click.echo('Please parse at lease one %s ...' % nforge_type)
         exit()
     else:
         click.echo(click.style('Please input number of project that you want to migrate to GitHub', fg='green'))

@@ -75,7 +75,8 @@
  $ pyvenv venv # python3 사용자
  $ . venv/bin/activate # *nix 계열
  $ . venv\Scripts\activate # Windows
- $ pip install lxml_파일명 # Windows 사용자만 해당, 아래 참고
+ $ pip install bs4 # Windows 사용자
+ $ pip install lxml_파일명 # Windows 사용자
  $ pip install --editable .
  ```
 
@@ -95,7 +96,7 @@
 
 ## 마이그레이션 진행
 * 터미널에서 *npa* 명령어를 실행합니다. nForge 프로젝트를 파싱해서 파일로 만들어주는 명령어입니다.
-*
+
   ```sh
   $ npa
   Project name: Nforge # 프로젝트 이름 입력
@@ -119,3 +120,4 @@
 
 ## 주의 사항
 * 빠른 시간 내에 많은 GitHub 마이그레이션을 수행하면 [Abuse Rate Limits](https://developer.github.com/v3/#abuse-rate-limits)가 발생해 일시적으로 GitHub API를 호출할 수 없게 됩니다. 새로운 토큰을 발급하시거나 몇분 후에 다시 시도해주세요.
+* 만일 위키를 만들지 않으시고 마이그레이션을 수행하셨거나 첨부파일이 제대로 보이지 않을 경우에는 Nforge/open_project/{프로젝트명}/issues/raw 로 가셔서 **git push -f origin master** 명령어를 실행하셔서 강제로 첨부파일들을 업로드해주세요.

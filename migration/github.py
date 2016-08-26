@@ -13,6 +13,7 @@ from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
 from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from tqdm import tqdm
 
 from .helper import get_fn, chunks
 
@@ -198,16 +199,27 @@ class GitHubMigration:
 
         return downloads
 
-    def issues_migration(self):
+    def issues_migration_parallel(self):
         issue_split = list(chunks(self.issues, 30))
 
-        for issues in issue_split:
+        for issues in tqdm(issue_split):
             irs = (grequests.post(self.import_issue_url, data=issue, headers=self.issue_header) for issue in issues)
             import_issues = grequests.map(irs, exception_handler=exception_handler)
 
             for response in import_issues:
                 if not ok_code.match(str(response.status_code)):
-                    return False
+                    print(response.text)
+                    continue
+
+        self.upload_issue_attach()
+        return True
+
+    def issues_migration(self):
+        for issue in tqdm(self.issues):
+            r = requests.post(self.import_issue_url, data=issue, headers=self.issue_header)
+
+            if not ok_code.match(str(r.status_code)):
+                print(r.text)
 
         self.upload_issue_attach()
         return True
@@ -218,14 +230,14 @@ class GitHubMigration:
 
         os.chdir(os.path.join(self.project_path, ISSUES_DIR, 'raw'))
 
-        git_commands = [
-            ['git', 'init'],
-            ['git', 'add', '--all'],
-            ['git', 'commit', '-m', 'all asset commit'],
-            ['git', 'remote', 'add', 'origin', push_wiki_git],
-            ['git', 'pull', '-f', push_wiki_git, 'master'],
-            ['git', 'push', '-f', push_wiki_git, 'master']
-        ]
+        git_commands = (
+            ('git', 'init'),
+            ('git', 'add', '--all'),
+            ('git', 'commit', '-m', 'all asset commit'),
+            ('git', 'remote', 'add', 'origin', push_wiki_git),
+            ('git', 'pull', '-f', push_wiki_git, 'master'),
+            ('git', 'push', '-f', push_wiki_git, 'master')
+        )
 
         for command in git_commands:
             subprocess.call(command)

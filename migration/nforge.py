@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
+import hashlib
 import json
 import logging
+import mimetypes
 import os
 import time
 
 import requests
-from future.moves.urllib.parse import urlparse
+from future.moves.urllib.parse import urlparse, urljoin
 from requests import request
 from tqdm import tqdm
 
 from cli import DIRS
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
-from migration.helper import making_soup, make_dirs
+from migration.helper import making_soup, make_dirs, get_fn
 
 
 class Milestone:
@@ -64,6 +66,9 @@ class Nforge:
     COOKIE_FILE = 'COOKIES'
     COOKIE_PATH = os.path.join(DIRS[0], COOKIE_FILE)
 
+    print_type = "%Y/%m/%d %H:%M:%S"
+    github_type = "%Y-%m-%dT%H:%M:%SZ"
+
     def __init__(self, project_name, dev_code):
         self.name = project_name
         self.url = self.NFORGE_URLS[dev_code]
@@ -91,9 +96,11 @@ class Nforge:
         self.check_valid_project()
 
         project_type = 'dev_code' if dev_code else 'open_project'
+
         self.path = os.path.join(Nforge.__name__, project_type, project_name)
         self.issues_path = os.path.join(self.path, ISSUES_DIR)
         self.downloads_path = os.path.join(self.path, DOWNLOADS_DIR)
+        self.attach_path = os.path.join(self.issues_path, 'raw', ISSUE_ATTACH_DIR)
 
         self.paths = [self.issues_path, self.downloads_path]
 
@@ -113,13 +120,6 @@ class Nforge:
         src_soup = making_soup(request("GET", self.project_url + '/src', cookies=self.cookies).content, 'html')
         self.vcs = 'svn' if src_soup.find('div', class_='code_contents') else 'git'
         self.urls = self.create_url()
-
-        with open(os.path.join(self.path, 'project_info.json'), 'w') as pr_info:
-            pr_info.write(json.dumps(dict(
-                name=project_name,
-                url=self.url,
-                cookies=self.cookies
-            )))
 
     def __str__(self):
         return self.name
@@ -256,8 +256,6 @@ class Nforge:
 
     def boards_xml(self):
         # issue, download
-        xml_lists = [list(), list()]
-
         for board, url in self.urls.items():
             is_download = board == 'download'
 
@@ -273,7 +271,7 @@ class Nforge:
                 os.mkdir(xml_path)
 
             for doc_id in progress_bar:
-                progress_bar.set_description('Now making {0}.xml of {1}'.format(doc_id, board))
+                progress_bar.set_description('Now making {0}.xml and {0}.json of {1}'.format(doc_id, board))
 
                 fn = doc_id + '.xml'
 
@@ -287,9 +285,196 @@ class Nforge:
                 # Precaution of xml encoding error
                 xml_bytes = doc_requests.content.decode('utf-8', 'replace')
                 parsed_xml = xml_bytes.replace('&#13;', '\n')
-                xml_lists[is_download].append(parsed_xml)
 
                 with open(os.path.join(xml_path, fn), 'w', encoding='utf-8') as xml_file:
                     xml_file.write(parsed_xml)
 
-        return xml_lists
+                soup = making_soup(parsed_xml, 'xml')
+
+                if not is_download:
+                    self.make_issue(board, soup)
+                else:
+                    self.make_download(doc_id, soup)
+
+    def make_issue(self, doc_type, issue):
+        issue_id_tag = issue.find('artifact_id')
+        author_tag = issue.find('author')
+        assignee_tag = issue.find('assignee')
+        title_tag = issue.find('title')
+        body_tag = issue.find('description')
+        open_date_tag = issue.find('open_date')
+        close_date_tag = issue.find('close_date')
+        attachments_tag = issue.find('attachments')
+
+        issue_id = '0' if not issue_id_tag else issue_id_tag.get_text()
+        author = 'No author' if not author_tag else author_tag.get_text().replace(' ', '')
+        assignee = 'No assignee' if not assignee_tag else assignee_tag.get_text().replace(' ', '')
+        title = 'No title' if not title_tag else title_tag.get_text()
+        body = 'No body' if not body_tag else body_tag.get_text()
+        open_date_str = '0' if not open_date_tag else open_date_tag.get_text()
+        close_date = '0' if not close_date_tag else close_date_tag.get_text()
+
+        open_date = time.strftime(self.print_type, time.localtime(int(open_date_str)))
+        create_date = time.strftime(self.github_type, time.localtime(int(open_date_str)))
+        closed_date = time.strftime(self.github_type, time.localtime(int(close_date)))
+
+        closed = False if close_date == '0' else True
+
+        items = attachments_tag.findAll('item') if attachments_tag else None
+        attachments_link = self.attach_links(items, issue_id)
+
+        comments = issue.find('comments')
+
+        assignee_text = 'and assigned to **{0}**'.format(assignee) if assignee != 'Nobody' else ''
+        description = "This {0} created by **{1}** {2} | {3}\n\n------\n\n{4}{5}".format(
+            doc_type,
+            author,
+            assignee_text,
+            open_date,
+            body,
+            attachments_link)
+
+        comment_list = self.make_comments(comments)
+
+        issue_json = json.dumps(
+            dict(
+                issue=dict(
+                    title=title,
+                    body=description,
+                    closed=closed,
+                    labels=[doc_type],
+                    created_at=create_date,
+                    closed_at=closed_date
+                ),
+                comments=comment_list
+            ))
+
+        with open(os.path.join(self.issues_path, 'json', issue_id + '.json'), 'w') as json_file:
+            json_file.write(issue_json)
+
+    def make_download(self, release_id, soup):
+        raw_file_path = os.path.join(self.downloads_path, 'raw', release_id)
+
+        if not os.path.exists(raw_file_path):
+            os.mkdir(raw_file_path)
+
+        name_tag = soup.find('name')
+        desc_tag = soup.find('description')
+        files_tag = soup.find('files')
+
+        name = 'No title' if not name_tag else name_tag.get_text()
+        desc = 'No desc' if not desc_tag else desc_tag.get_text()
+
+        version = str(self.get_version(name))
+
+        with open(os.path.join(self.downloads_path, 'json', release_id + '.json'), 'w') as json_file:
+            json.dump(dict(
+                tag_name=version, target_commitish='master', name=name, body=desc, prerelease=False, draft=False
+            ), json_file, ensure_ascii=False)
+
+        if files_tag:
+            for release_file in files_tag.findAll('file'):
+                file_id_tag = release_file.find('id')
+                file_name_tag = release_file.find('name')
+                fid = '0' if not file_id_tag else file_id_tag.get_text()
+
+                if file_name_tag:
+                    fn = file_name_tag.get_text()
+                else:
+                    continue
+
+                file_down_url = '{0}/frs/download.php/{1}/{2}'.format(self.url, fid, fn)
+                file_raw = requests.request('GET', file_down_url, stream=True, cookies=self.cookies).content
+
+                with open(os.path.join(raw_file_path, fn), 'wb') as raw_file:
+                    raw_file.write(file_raw)
+
+    def attach_links(self, items, content_id):
+        attach_markdown = ''
+
+        if items and content_id:
+            for item in items:
+                # Sometimes length of items is zero.
+                if items.index(item) == 0:
+                    attach_markdown = '\n\n-----\n### Attachments\n'
+
+                link_tag = item.find('link')
+                id_tag = item.find('id')
+
+                if not link_tag or link_tag == -1:
+                    return ''
+                else:
+                    link = link_tag.get_text()
+
+                fn = link.split('/')[-1]
+                ext = get_fn(fn, 1)
+                fn_md5 = hashlib.md5(fn.encode('utf-8')).hexdigest() + ext
+                fid = 'No file id' if not id_tag else id_tag.get_text()
+
+                # Download files
+                down_url = urljoin(self.url, link)
+                down_path = os.path.join(self.attach_path, content_id, fid)
+
+                if not os.path.exists(down_path):
+                    downloaded = requests.request("GET", down_url, stream=True, cookies=self.cookies)
+
+                    if not os.path.exists(down_path):
+                        os.makedirs(down_path)
+
+                    with open(os.path.join(down_path, fn_md5), 'wb') as f:
+                        f.write(downloaded.content)
+
+                file_path = '/{0}/{1}/{2}'.format(content_id, fid, fn_md5)
+                github_link = '{0}/wiki/attachFile' + file_path
+
+                mime_type = mimetypes.guess_type(fn)[0]
+
+                if mime_type and mime_type.split('/')[0] == 'image':
+                    attach_markdown += '* {0}\n\n\t![{0}]({1})\n\n'.format(fn, github_link)
+                else:
+                    attach_markdown += '* [{0}]({1})\n\n'.format(fn, github_link)
+
+        return attach_markdown
+
+    def make_comments(self, comments):
+        result = []
+
+        if comments:
+            for comment in comments.find_all('item'):
+                id_tag = comment.find('id')
+                description_tag = comment.find('description')
+                author_tag = comment.find('author')
+                attachments_tag = comment.find('attachments')
+                date_tag = comment.find('pubDate')
+
+                id_ = None if not id_tag else id_tag.get_text()
+                body = 'No description' if not description_tag else description_tag.get_text()
+                author = 'No author' if not author_tag else author_tag.get_text()
+                date = '0' if not date_tag else date_tag.get_text()
+                items = attachments_tag.findAll('item') if attachments_tag else None
+
+                print_time = time.strftime(self.print_type, time.localtime(int(date)))
+                github_time = time.strftime(self.github_type, time.localtime(int(date)))
+
+                attach_links = self.attach_links(items, id_)
+
+                c_body = "This comment created by **{0}** | {1}\n\n------\n\n{2}{3}".format(author, print_time, body,
+                                                                                            attach_links)
+
+                result.append({
+                    "created_at": github_time,
+                    "body": c_body
+                })
+
+        return result
+
+    def get_version(self, title):
+        temp = title.upper().replace(self.name.upper(), '')
+
+        try:
+            result = int(temp)
+
+            if result < 0:
+                return abs(result)
+        except ValueError:
+            return temp.replace(' ', '')

@@ -3,7 +3,6 @@
 import click
 
 from migration.nforge import Nforge
-from migration.nforge_parser import NforgeParser
 
 
 @click.command()
@@ -19,10 +18,6 @@ def nforge_parser_cli(project_name, dev_code):
     project.wiki()
     project.milestones()
     project.boards_xml()
-
-    parser = NforgeParser(project.path)
-    parser.make_issue_json()
-    parser.make_download_json()
 
 if __name__ == '__main__':
     nforge_parser_cli()

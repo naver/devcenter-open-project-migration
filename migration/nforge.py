@@ -156,7 +156,7 @@ class Nforge:
 
         if '오류' in title:
             raise InvalidProjectError(self.name)
-        elif not self.name in title:
+        elif self.name not in title:
             raise InvalidCookieError(self.cookies)
 
     def code_info(self):

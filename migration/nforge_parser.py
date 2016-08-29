@@ -7,9 +7,9 @@ import time
 
 import requests
 from future.moves.urllib.parse import urljoin
-from migration import ISSUES_DIR, DOWNLOADS_DIR, ISSUE_ATTACH_DIR
 from tqdm import tqdm
 
+from migration import ISSUES_DIR, DOWNLOADS_DIR, ISSUE_ATTACH_DIR
 from .helper import making_soup, get_fn
 
 
@@ -76,6 +76,9 @@ class NforgeParser:
                 progress_bar.set_description('Now making {0}.json of {1}'.format(issue_id, doc_type))
 
                 open_date = time.strftime(self.print_type, time.localtime(int(open_date_str)))
+                create_date = time.strftime(self.github_type, time.localtime(int(open_date_str)))
+                closed_date = time.strftime(self.github_type, time.localtime(int(close_date)))
+
                 closed = False if close_date == '0' else True
 
                 items = attachments_tag.findAll('item') if attachments_tag else None
@@ -100,7 +103,9 @@ class NforgeParser:
                             title=title,
                             body=description,
                             closed=closed,
-                            labels=[doc_type]
+                            labels=[doc_type],
+                            created_at=create_date,
+                            closed_at=closed_date
                         ),
                         comments=comment_list
                     ))

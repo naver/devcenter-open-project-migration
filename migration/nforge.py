@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import time
-from builtins import input
 
 import requests
 from future.moves.urllib.parse import urlparse
@@ -47,6 +46,15 @@ class InvalidProjectError(Exception):
         return not_found_project_msg
 
 
+class InvalidCookieError(Exception):
+    def __init__(self, cookies):
+        self.cookies = cookies
+
+    def __str__(self):
+        msg = 'Please make valid cookies to data/COOKIES'.format(self.cookies)
+        return msg
+
+
 class Nforge:
     cookies = None
     SUB_DIRS = ('raw', 'xml', 'json')
@@ -61,6 +69,21 @@ class Nforge:
         self.url = self.NFORGE_URLS[dev_code]
 
         self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
+
+        if dev_code:
+            # Get cookies from COOKIES file
+            self.cookies = dict()
+            nss_tok = 'nssTok'
+
+            try:
+                with open(self.COOKIE_PATH) as f:
+                    cookie_list = [cookie for cookie in f]
+
+                for cookie in cookie_list:
+                    cookie_split = cookie.split('=')
+                    self.cookies[cookie_split[0]] = cookie_split[1].replace('\n', '')
+            except EnvironmentError:
+                raise InvalidCookieError
 
         self.project_main_html = requests.request('GET', self.project_url, cookies=self.cookies).content
         self.project_main_soup = making_soup(self.project_main_html, 'html')
@@ -86,24 +109,6 @@ class Nforge:
                 os.mkdir(issue_data)
             if not os.path.exists(download_data):
                 os.mkdir(download_data)
-
-        if dev_code:
-            # Get cookies from COOKIES file
-            self.cookies = dict()
-            nss_tok = 'nssTok'
-
-            try:
-                with open(self.COOKIE_PATH) as f:
-                    cookie_list = [cookie for cookie in f]
-
-                for cookie in cookie_list:
-                    cookie_split = cookie.split(' ')
-                    self.cookies[cookie_split[0]] = cookie_split[1].replace('\n', '')
-            except EnvironmentError:
-                self.cookies[nss_tok] = str(input(nss_tok + ' : '))
-
-                with open(self.COOKIE_PATH, 'w', encoding='utf-8') as f:
-                    f.write(nss_tok + ' ' + self.cookies[nss_tok])
 
         src_soup = making_soup(request("GET", self.project_url + '/src', cookies=self.cookies).content, 'html')
         self.vcs = 'svn' if src_soup.find('div', class_='code_contents') else 'git'
@@ -151,6 +156,8 @@ class Nforge:
 
         if '오류' in title:
             raise InvalidProjectError(self.name)
+        elif not self.name in title:
+            raise InvalidCookieError(self.cookies)
 
     def code_info(self):
         netloc = urlparse(self.url).netloc

@@ -75,7 +75,7 @@
  $ pyvenv venv # python3 사용자
  $ . venv/bin/activate # *nix 계열
  $ . venv\Scripts\activate # Windows
- $ pip install bs4 # Windows 사용자
+ $ pip install bs4
  $ pip install lxml_파일명 # Windows 사용자
  $ pip install --editable .
  ```

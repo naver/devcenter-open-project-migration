@@ -67,13 +67,13 @@ class Nforge:
     def __init__(self, project_name, dev_code):
         self.name = project_name
         self.url = self.NFORGE_URLS[dev_code]
+        self.dev_code = dev_code
 
         self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
 
         if dev_code:
             # Get cookies from COOKIES file
             self.cookies = dict()
-            nss_tok = 'nssTok'
 
             try:
                 with open(self.COOKIE_PATH) as f:
@@ -156,7 +156,7 @@ class Nforge:
 
         if '오류' in title:
             raise InvalidProjectError(self.name)
-        elif self.name not in title:
+        elif self.name not in title and self.dev_code:
             raise InvalidCookieError(self.cookies)
 
     def code_info(self):

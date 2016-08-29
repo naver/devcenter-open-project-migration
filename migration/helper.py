@@ -3,7 +3,7 @@ import os
 
 import sys
 from bs4 import BeautifulSoup
-from imp import reload
+from importlib import reload
 
 
 def making_soup(content, doc_type):

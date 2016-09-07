@@ -11,7 +11,7 @@ import grequests
 import requests
 from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
-from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
+from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR, fail_code
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from tqdm import tqdm
 
@@ -258,6 +258,12 @@ class GitHubMigration:
         return True if status == 'complete' else False
 
     def downloads_migration(self):
+        check_commits = requests.get(self.basis_repo_url + '/commits').status_code
+
+        if fail_code.match(str(check_commits)):
+            print('Your repository does not have commits')
+            return False
+
         while not self.check_repo_migration():
             print('Checking repository migration status every %d seconds.' % WAIT_TIME)
             time.sleep(WAIT_TIME)

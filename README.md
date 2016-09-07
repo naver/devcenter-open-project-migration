@@ -121,3 +121,4 @@
 ## 주의 사항
 * 빠른 시간 내에 많은 GitHub 마이그레이션을 수행하면 [Abuse Rate Limits](https://developer.github.com/v3/#abuse-rate-limits)가 발생해 일시적으로 GitHub API를 호출할 수 없게 됩니다. 새로운 토큰을 발급하시거나 몇분 후에 다시 시도해주세요.
 * 만일 위키를 만들지 않으시고 마이그레이션을 수행하셨거나 첨부파일이 제대로 보이지 않을 경우에는 Nforge/open_project/{프로젝트명}/issues/raw 로 가셔서 **git push -f origin master** 명령어를 실행하셔서 강제로 첨부파일들을 업로드해주세요.
+* 저장소에 아무 커밋도 없으면 다운로드 마이그레이션이 진행되지 않습니다. **반드시 저장소 마이그레이션을 수행하시거나 한 개 이상의 커밋**을 만들어주세요!

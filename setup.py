@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='nForge_migration',
@@ -8,7 +8,8 @@ setup(
     author='Taehwan Kim',
     author_email='maxtortime@navercorp.com',
     py_modules=['npa', 'ght', 'ghm'],
-    packages=[],
+    packages=find_packages(exclude=['tests*']),
+    data_files=['Nforge', 'data'],
     install_requires=[
         'Click',
         'BeautifulSoup4',

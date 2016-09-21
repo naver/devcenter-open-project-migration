@@ -17,8 +17,3 @@ ISSUE_ATTACH_DIR = 'attachFile'
 MILESTONES_DIR = 'milestones'
 ok_code = re.compile('20\d')
 PARSING_OUTPUT_DIR = 'Nforge'
-
-# TODO: logging.basicConfig shows error at Windows because of log file path
-if not os.name == 'nt':
-    logging.basicConfig(filename=os.path.join('logs',
-                                              time.strftime("%Y-%m-%d %H:%M:%S") + '.log'), level=logging.ERROR)

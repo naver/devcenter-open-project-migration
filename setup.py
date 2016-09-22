@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
-from migration import __version__
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='nForge_migration',
-    version=__version__,
-    description='Nforge to GitHub migration',
+    version='1.0.0',
+    description='Migrate nForge project to GitHub',
     author='Taehwan Kim',
     author_email='maxtortime@navercorp.com',
-    py_modules=['npa', 'ght', 'ghm'],
+    py_modules=['npa', 'ghm'],
+    packages=find_packages(exclude=['tests*']),
+    data_files=['Nforge', 'data'],
     install_requires=[
         'Click',
         'BeautifulSoup4',
@@ -23,7 +24,13 @@ setup(
     entry_points='''
         [console_scripts]
         npa=cli.nforge_parser_cli:nforge_parser_cli
-        ght=cli.github_token_cli:github_token_cli
         ghm=cli.github_migration_cli:github_migration_cli
     ''',
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Topic :: Utilities",
+        "Environment :: Console",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.5",
+    ],
 )

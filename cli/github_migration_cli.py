@@ -3,7 +3,6 @@ import os
 import webbrowser
 
 import click
-
 from cli import CUR_DIR, DIRS
 from migration.github import GitHubMigration, InvalidTokenError
 
@@ -11,25 +10,24 @@ from migration.github import GitHubMigration, InvalidTokenError
 @click.command()
 @click.option('--token', help='Input token')
 @click.option('--repo_name', prompt=True, help='GitHub repository name')
-@click.option('--enterprise', help='Is it Github enterprise repository?', is_flag=True, default=False)
-@click.option('--open_project', help='Is DevCode project', is_flag=True, prompt=True)
-def github_migration_cli(open_project, enterprise, repo_name, token):
+@click.option('--enterprise', help='Is it Github enterprise repository?', is_flag=False, default=False)
+@click.option('--private', help='Is it open-project private repository?', prompt=True, is_flag=True, default=False)
+@click.option('--dev_code', help='Is DevCode project', is_flag=True, prompt=False, default=False)
+def github_migration_cli(dev_code, enterprise, repo_name, token, private):
     """ GitHub migration management """
 
     # Change current directory to root directory
     os.chdir(CUR_DIR)
 
     # get path of nforge parsed data
-    nforge_type = 'open_project' if open_project else 'dev_code'
+    nforge_type = 'open_project' if not dev_code else 'dev_code'
     nforge_path = os.path.join(os.path.join(DIRS[2], nforge_type))
-
-    print(nforge_path)
 
     try:
         output_dirs = os.listdir(nforge_path)
     except EnvironmentError:
         click.echo('Please parse at lease one %s ...' % nforge_type)
-        exit()
+        exit(-1)
     else:
         click.echo(click.style('Please input number of project that you want to migrate to GitHub', fg='green'))
         menu = 'Please input number '
@@ -46,15 +44,16 @@ def github_migration_cli(open_project, enterprise, repo_name, token):
                 project_name = output_dirs[idx]
             except IndexError:
                 click.echo('%d is not valid number' % idx)
+                exit(-1)
 
             project_path = os.path.join(nforge_path, project_name)
 
             try:
                 ghm = GitHubMigration(token=token, enterprise=enterprise, repo_name=repo_name,
                                       project_path=project_path)
-            except InvalidTokenError:
-                click.echo(click.style(token + ' is a invalid token!!', fg='red'))
-                exit()
+            except InvalidTokenError as e:
+                click.echo(click.style(e.token + ' is a invalid token!!', fg='red'))
+                exit(-1)
             else:
                 click.echo(ghm.token + click.style(' is valid token', fg='blue'))
                 is_wiki = click.prompt('Did you made a wiki?(y/n)', type=bool)
@@ -75,10 +74,12 @@ def github_migration_cli(open_project, enterprise, repo_name, token):
                     click.echo('Issue and board migration has failed')
 
                 # Only open project and GitHub repo do repo and downloads migration.
-                if open_project and not enterprise:
+                if not (dev_code or enterprise or private):
                     if not ghm.repo_migration():
                         click.echo('Source code repository migration has failed')
 
+                # Private project only executes download migration after import repo manually!!
+                if not enterprise:
                     if not ghm.downloads_migration():
                         click.echo('Download migration has failed.')
 

@@ -216,7 +216,7 @@ class Nforge:
             with open(os.path.join(wiki_path, doc_name) + '.md', 'w') as wiki_doc:
                 wiki_doc.write(str(wiki_content))
 
-        return list(wiki_pages.keys())
+        return wiki_pages
 
     def developers(self):
         class_name = 'developer_info_list'

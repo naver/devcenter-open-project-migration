@@ -3,7 +3,6 @@ import os
 import webbrowser
 
 import click
-
 from cli import CUR_DIR, DIRS
 from migration.github import GitHubMigration, InvalidTokenError
 
@@ -79,8 +78,8 @@ def github_migration_cli(open_project, enterprise, repo_name, token):
                     if not ghm.repo_migration():
                         click.echo('Source code repository migration has failed')
 
-                    if not ghm.downloads_migration():
-                        click.echo('Download migration has failed.')
+                if not ghm.downloads_migration():
+                    click.echo('Download migration has failed.')
 
 if __name__ == '__main__':
     github_migration_cli()

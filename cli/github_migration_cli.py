@@ -8,11 +8,11 @@ from migration.github import GitHubMigration, InvalidTokenError
 
 
 @click.command()
-@click.option('--token', help='Input token')
-@click.option('--repo_name', prompt=True, help='GitHub repository name')
-@click.option('--enterprise', help='Is it Github enterprise repository?', is_flag=False, default=False)
-@click.option('--private', help='Is it open-project private repository?', prompt=True, is_flag=True, default=False)
-@click.option('--dev_code', help='Is DevCode project', is_flag=True, prompt=False, default=False)
+@click.option('--token', help='토큰 직접 입력')
+@click.option('--repo_name', prompt=True, help='GitHub 저장소 이름')
+@click.option('--enterprise', help='GitHub 엔터프라이즈 저장소 여부', is_flag=False, default=False)
+@click.option('--private', help='오픈 프로젝트 비공개 저장소 여부', prompt=True, is_flag=True, default=False)
+@click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True, prompt=False, default=False)
 def github_migration_cli(dev_code, enterprise, repo_name, token, private):
     """ GitHub migration management """
 

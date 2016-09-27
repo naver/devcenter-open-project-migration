@@ -21,6 +21,12 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 def exception_handler(request, exception):
+    """This function prints grequests exception
+
+    :param request: grequests' object
+    :param exception: request's exception
+    :return: null
+    """
     print(request.text, exception)
 
 

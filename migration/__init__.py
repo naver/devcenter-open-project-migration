@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
-import logging
-import os
+"""
+nforge_migration
+~~~~~~~~~~~~~~~~~~~~~~
+
+nforge 마이그레이션
+
+:copyright: (c) 2016 by Taehwan Kim <maxtortime@navercorp.com>.
+:license: None
+"""
 import re
-import time
 
 from .helper import set_encoding
 

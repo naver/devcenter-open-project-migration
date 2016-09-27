@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='nForge_migration',
+    name='nforge_migration',
     version='1.0.0',
     description='Migrate nForge project to GitHub',
     author='Taehwan Kim',

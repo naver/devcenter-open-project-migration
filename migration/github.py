@@ -21,6 +21,12 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 def exception_handler(request, exception):
+    """This function prints grequests exception
+
+    :param request: grequests' object
+    :param exception: request's exception
+    :return: null
+    """
     print(request.text, exception)
 
 
@@ -101,12 +107,14 @@ class GitHubMigration:
         self.downloads = self.read_downloads()
 
     def confirm_token(self, token):
-        confirm_url = self.__api_url + 'user?access_token=' + token
+        # get rid special characters of token
+        formatted_token = ''.join(_ for _ in token if _.isalnum())
+        confirm_url = self.__api_url + 'user?access_token=' + formatted_token
 
         if not requests.request("GET", confirm_url).status_code is 200:
-            raise InvalidTokenError(token)
+            raise InvalidTokenError(formatted_token)
         else:
-            return token
+            return formatted_token
 
     @property
     def token(self):

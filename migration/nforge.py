@@ -7,13 +7,12 @@ import os
 import time
 
 import requests
-from future.moves.urllib.parse import urlparse, urljoin
-from requests import request
-from tqdm import tqdm
-
 from cli import DIRS
+from future.moves.urllib.parse import urlparse, urljoin
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
+from migration.exception import InvalidCookieError, InvalidProjectError, NoSrcError
 from migration.helper import making_soup, make_dirs, get_fn
+from tqdm import tqdm
 
 
 class Milestone:
@@ -39,24 +38,6 @@ class Milestone:
         return self.json
 
 
-class InvalidProjectError(Exception):
-    def __init__(self, pr_name):
-        self.pr_name = pr_name
-
-    def __str__(self):
-        not_found_project_msg = '{0} does not exist.'.format(self.pr_name)
-        return not_found_project_msg
-
-
-class InvalidCookieError(Exception):
-    def __init__(self, cookies):
-        self.cookies = cookies
-
-    def __str__(self):
-        msg = 'Please make valid cookies to data/COOKIES'.format(self.cookies)
-        return msg
-
-
 class Nforge:
     cookies = None
     SUB_DIRS = ('raw', 'xml', 'json')
@@ -69,14 +50,14 @@ class Nforge:
     print_type = "%Y/%m/%d %H:%M:%S"
     github_type = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self, project_name, dev_code):
+    def __init__(self, project_name, dev_code, need_cookies):
         self.name = project_name
         self.url = self.NFORGE_URLS[dev_code]
         self.dev_code = dev_code
 
         self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
 
-        if dev_code:
+        if dev_code or need_cookies:
             # Get cookies from COOKIES file
             self.cookies = dict()
 
@@ -90,7 +71,9 @@ class Nforge:
             except EnvironmentError:
                 raise InvalidCookieError
 
-        self.project_main_html = requests.request('GET', self.project_url, cookies=self.cookies).content
+        request_main_html = requests.get(self.project_url, cookies=self.cookies)
+
+        self.project_main_html = request_main_html.content
         self.project_main_soup = making_soup(self.project_main_html, 'html')
 
         self.check_valid_project()
@@ -117,8 +100,19 @@ class Nforge:
             if not os.path.exists(download_data):
                 os.mkdir(download_data)
 
-        src_soup = making_soup(request("GET", self.project_url + '/src', cookies=self.cookies).content, 'html')
-        self.vcs = 'svn' if src_soup.find('div', class_='code_contents') else 'git'
+        # get version control system information
+        src_request = requests.get(self.project_url + '/src', cookies=self.cookies)
+        src_soup = making_soup(src_request.content, 'html')
+        src_title = src_soup.find('title').get_text()
+
+        # if cannot find all related div tags, it raises NoSrcError
+        if src_soup.find('div', class_='code_contents'):
+            self.vcs = 'svn'
+        elif '로그인' in src_title or '오류' in src_title:
+            raise NoSrcError
+        else:
+            self.vcs = 'git'
+
         self.urls = self.create_url()
 
     def __str__(self):
@@ -131,7 +125,7 @@ class Nforge:
         for parse_type in types:
             # Board and issue list
             url = '{0}/{1}'.format(self.project_url, parse_type)
-            r = request("GET", url, cookies=self.cookies)
+            r = requests.get(url, cookies=self.cookies)
 
             # HTML parsing
             soup = making_soup(r.content, 'html')
@@ -176,17 +170,17 @@ class Nforge:
             vcs = 'subversion'
             vcs_url = 'https://{2}/{0}/{1}'.format(self.vcs, self.name, url)
 
-        code_info_json = json.dumps(dict(
+        code_info = dict(
             vcs=vcs,
             vcs_url=vcs_url,
             vcs_username=vcs_username,
             vcs_password=vcs_password
-        ))
+        )
 
-        with open(os.path.join(self.path, CODE_INFO_FILE), 'w') as code_info:
-            code_info.write(code_info_json)
+        with open(os.path.join(self.path, CODE_INFO_FILE), 'w', encoding='utf-8') as code_info_json:
+            json.dump(code_info, code_info_json)
 
-        return code_info_json
+        return code_info
 
     def wiki(self):
         wiki_path = os.path.join(self.path, ISSUES_DIR, self.SUB_DIRS[0])
@@ -200,7 +194,7 @@ class Nforge:
 
         for a_tag in project_news_item[2].findAll('a'):
             url = self.url + a_tag['href'] + '?action=edit'
-            wiki_request = request("GET", url, cookies=self.cookies).content
+            wiki_request = requests.get(url, cookies=self.cookies).content
             doc_name = a_tag['title']
 
             # Except error for private wiki
@@ -208,7 +202,7 @@ class Nforge:
             try:
                 wiki_content = making_soup(wiki_request, 'html').textarea.get_text()
             except AttributeError:
-                wiki_request = request("GET", self.url + a_tag['href'], cookies=self.cookies).content
+                wiki_request = requests.get(self.url + a_tag['href'], cookies=self.cookies).content
                 wiki_content = making_soup(wiki_request, 'html').find('div', id='mycontent')
 
             wiki_pages[doc_name] = str(wiki_content)
@@ -216,7 +210,7 @@ class Nforge:
             with open(os.path.join(wiki_path, doc_name) + '.md', 'w') as wiki_doc:
                 wiki_doc.write(str(wiki_content))
 
-        return list(wiki_pages.keys())
+        return wiki_pages
 
     def developers(self):
         class_name = 'developer_info_list'
@@ -233,7 +227,7 @@ class Nforge:
 
     def milestones(self):
         milestone_url = self.project_url + '/milestone.xml'
-        milestone_xml = request("GET", milestone_url, cookies=self.cookies).content
+        milestone_xml = requests.get(milestone_url, cookies=self.cookies).content
         xml_soup = making_soup(milestone_xml, 'xml')
         milestones_soup = xml_soup.findAll('milestone')
         milestones_path = os.path.join(self.path, 'milestones')
@@ -259,7 +253,7 @@ class Nforge:
         for board, url in self.urls.items():
             is_download = board == 'download'
 
-            get_board_request = requests.request("GET", url, cookies=self.cookies)
+            get_board_request = requests.get(url, cookies=self.cookies)
             parsed_board = making_soup(get_board_request.content, 'xml')
             doc_ids = [id_tag.get_text() for id_tag in parsed_board.findAll(self.ID_TAGS[is_download])]
 
@@ -276,7 +270,7 @@ class Nforge:
                 fn = doc_id + '.xml'
 
                 doc_req_url = '{0}/{1}/{2}.xml'.format(self.project_url, board, doc_id)
-                doc_requests = requests.request('GET', doc_req_url, cookies=self.cookies)
+                doc_requests = requests.get(doc_req_url, cookies=self.cookies)
 
                 if not ok_code.match(str(doc_requests.status_code)):
                     logging.error('{0} HAS REQUEST ERROR {1}'.format(doc_id, doc_requests.status_code))
@@ -384,7 +378,7 @@ class Nforge:
                     continue
 
                 file_down_url = '{0}/frs/download.php/{1}/{2}'.format(self.url, fid, fn)
-                file_raw = requests.request('GET', file_down_url, stream=True, cookies=self.cookies).content
+                file_raw = requests.get(file_down_url, stream=True, cookies=self.cookies).content
 
                 with open(os.path.join(raw_file_path, fn), 'wb') as raw_file:
                     raw_file.write(file_raw)
@@ -416,7 +410,7 @@ class Nforge:
                 down_path = os.path.join(self.attach_path, content_id, fid)
 
                 if not os.path.exists(down_path):
-                    downloaded = requests.request("GET", down_url, stream=True, cookies=self.cookies)
+                    downloaded = requests.get(down_url, stream=True, cookies=self.cookies)
 
                     if not os.path.exists(down_path):
                         os.makedirs(down_path)

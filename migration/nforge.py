@@ -74,7 +74,7 @@ class InvalidCookieError(Exception):
 class Nforge:
     cookies = None
     SUB_DIRS = ('raw', 'xml', 'json')
-    NFORGE_URLS = ('http://staging.dev.naver.com', 'http://devcode.nhncorp.com/')
+    NFORGE_URLS = ('http://dev.naver.com', 'http://devcode.nhncorp.com/')
     ID_TAGS = ('artifact_id', 'release_id')
 
     COOKIE_FILE = 'COOKIES'

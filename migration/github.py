@@ -285,7 +285,6 @@ class GitHubMigration:
 
         if fail_code.match(str(check_commits)):
             print('Your repository does not have commits')
-            return False
 
         while not self.check_repo_migration():
             print('Checking repository migration status every %d seconds.' % WAIT_TIME)

@@ -1,4 +1,19 @@
 # -*- coding: utf-8 -*-
+"""
+   Copyright 2016 NAVER Corp.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
 import glob
 import json
 import mimetypes
@@ -21,6 +36,12 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 def exception_handler(request, exception):
+    """This function prints grequests exception
+
+    :param request: grequests' object
+    :param exception: request's exception
+    :return: null
+    """
     print(request.text, exception)
 
 
@@ -101,12 +122,14 @@ class GitHubMigration:
         self.downloads = self.read_downloads()
 
     def confirm_token(self, token):
-        confirm_url = self.__api_url + 'user?access_token=' + token
+        # get rid special characters of token
+        formatted_token = ''.join(_ for _ in token if _.isalnum())
+        confirm_url = self.__api_url + 'user?access_token=' + formatted_token
 
         if not requests.request("GET", confirm_url).status_code is 200:
-            raise InvalidTokenError(token)
+            raise InvalidTokenError(formatted_token)
         else:
-            return token
+            return formatted_token
 
     @property
     def token(self):

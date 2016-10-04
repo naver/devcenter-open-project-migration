@@ -1,14 +1,30 @@
 # -*- coding: utf-8 -*-
-from migration import __version__
-from setuptools import setup
+"""
+   Copyright 2016 NAVER Corp.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
+from setuptools import setup, find_packages
 
 setup(
-    name='nForge_migration',
-    version=__version__,
-    description='Nforge to GitHub migration',
+    name='nforge_migration',
+    version='1.0.0',
+    description='Migrate nForge project to GitHub',
     author='Taehwan Kim',
     author_email='maxtortime@navercorp.com',
-    py_modules=['npa', 'ght', 'ghm'],
+    py_modules=['npa', 'ghm'],
+    packages=find_packages(exclude=['tests*']),
+    data_files=['Nforge', 'data'],
     install_requires=[
         'Click',
         'BeautifulSoup4',
@@ -23,7 +39,13 @@ setup(
     entry_points='''
         [console_scripts]
         npa=cli.nforge_parser_cli:nforge_parser_cli
-        ght=cli.github_token_cli:github_token_cli
         ghm=cli.github_migration_cli:github_migration_cli
     ''',
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Topic :: Utilities",
+        "Environment :: Console",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.5",
+    ],
 )

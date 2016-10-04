@@ -1,4 +1,19 @@
 # -*- coding: utf-8 -*-
+"""
+   Copyright 2016 NAVER Corp.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
 import hashlib
 import json
 import logging
@@ -7,13 +22,12 @@ import os
 import time
 
 import requests
-from future.moves.urllib.parse import urlparse, urljoin
-from requests import request
-from tqdm import tqdm
-
 from cli import DIRS
+from future.moves.urllib.parse import urlparse, urljoin
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
 from migration.helper import making_soup, make_dirs, get_fn
+from requests import request
+from tqdm import tqdm
 
 
 class Milestone:
@@ -69,14 +83,14 @@ class Nforge:
     print_type = "%Y/%m/%d %H:%M:%S"
     github_type = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self, project_name, dev_code):
+    def __init__(self, project_name, dev_code, need_cookies):
         self.name = project_name
         self.url = self.NFORGE_URLS[dev_code]
         self.dev_code = dev_code
 
         self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
 
-        if dev_code:
+        if dev_code or need_cookies:
             # Get cookies from COOKIES file
             self.cookies = dict()
 

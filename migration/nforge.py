@@ -15,13 +15,14 @@
    limitations under the License.
 """
 import hashlib
-import json
 import logging
 import mimetypes
 import os
 import time
 
 import requests
+import json
+from builtins import str, open
 from cli import DIRS
 from future.moves.urllib.parse import urlparse, urljoin
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
@@ -190,15 +191,15 @@ class Nforge:
             vcs = 'subversion'
             vcs_url = 'https://{2}/{0}/{1}'.format(self.vcs, self.name, url)
 
-        code_info_json = json.dumps(dict(
+        code_info = json.dumps(dict(
             vcs=vcs,
             vcs_url=vcs_url,
             vcs_username=vcs_username,
             vcs_password=vcs_password
         ))
 
-        with open(os.path.join(self.path, CODE_INFO_FILE), 'w') as code_info:
-            code_info.write(code_info_json)
+        with open(os.path.join(self.path, CODE_INFO_FILE), 'w', encoding='utf-8') as code_info_json:
+            code_info_json.write(str(code_info))
 
         return code_info_json
 
@@ -364,7 +365,7 @@ class Nforge:
             ))
 
         with open(os.path.join(self.issues_path, 'json', issue_id + '.json'), 'w') as json_file:
-            json_file.write(issue_json)
+            json_file.write(str(issue_json))
 
     def make_download(self, release_id, soup):
         raw_file_path = os.path.join(self.downloads_path, 'raw', release_id)
@@ -381,10 +382,16 @@ class Nforge:
 
         version = str(self.get_version(name))
 
+        download_json = dict(
+            tag_name=version,
+            target_commitish='master',
+            name=name, body=desc,
+            prerelease=False,
+            draft=False
+        )
+
         with open(os.path.join(self.downloads_path, 'json', release_id + '.json'), 'w') as json_file:
-            json.dump(dict(
-                tag_name=version, target_commitish='master', name=name, body=desc, prerelease=False, draft=False
-            ), json_file, ensure_ascii=False)
+            json.dump(str(download_json), json_file, ensure_ascii=False)
 
         if files_tag:
             for release_file in files_tag.findAll('file'):

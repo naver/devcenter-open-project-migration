@@ -24,7 +24,6 @@ setup(
     author_email='maxtortime@navercorp.com',
     py_modules=['npa', 'ghm'],
     packages=find_packages(exclude=['tests*']),
-    data_files=['Nforge', 'data'],
     install_requires=[
         'Click',
         'BeautifulSoup4',

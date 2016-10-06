@@ -69,11 +69,24 @@ class TestGitHubMigration(unittest.TestCase):
             else:
                 continue
 
-    def test_download_migration(self):
+    def test_read_downloads(self):
+        ghm = GitHubMigration(False, 'd2coding-migration', 'Nforge/open_project/d2coding')
+
+        download = ghm.read_downloads()
+
+        for download_dict in download.values():
+            self.assertTrue(type(download_dict) is dict)
+
+    def test_invalid_download_migration(self):
         ghm = GitHubMigration(enterprise=True, token=self.valid_tokens[True], project_path=self.project_path,
                               repo_name='asd')
 
         self.assertFalse(ghm.downloads_migration())
+
+    def test_valid_download_migration(self):
+        ghm = GitHubMigration(False, 'd2coding-migration', 'Nforge/open_project/d2coding')
+        self.assertTrue(ghm.downloads_migration())
+
 
 if __name__ == '__main__':
     unittest.main()

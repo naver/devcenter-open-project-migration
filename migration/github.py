@@ -14,12 +14,14 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import ast
 import glob
 import json
 import mimetypes
 import os
 import subprocess
 import time
+from builtins import open
 
 import github3
 import grequests
@@ -291,8 +293,10 @@ class GitHubMigration:
             time.sleep(WAIT_TIME)
 
         for download_dict in self.downloads.values():
-            description = download_dict['json']
+            description = ast.literal_eval(download_dict['json'])
             files = download_dict['raw']
+
+            assert(type(description) is dict)
 
             tag_name = description['tag_name']
             target_commitish = description['target_commitish']

@@ -26,10 +26,10 @@ class TestNforge(unittest.TestCase):
 
     def test_nforge(self):
         with self.assertRaises(InvalidProjectError):
-            invalid_pr = Nforge(project_name=self.invalid_name, dev_code=False)
+            invalid_pr = Nforge(project_name=self.invalid_name, dev_code=False, need_cookies=False)
             self.assertIsNone(invalid_pr)
 
-        d2coding = Nforge(project_name=self.valid_pr_name, dev_code=False)
+        d2coding = Nforge(project_name=self.valid_pr_name, dev_code=False, need_cookies=False)
         self.assertIsInstance(d2coding, cls=Nforge)
 
         for doc_name in d2coding.wiki():

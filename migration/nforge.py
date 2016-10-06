@@ -84,14 +84,14 @@ class Nforge:
     print_type = "%Y/%m/%d %H:%M:%S"
     github_type = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self, project_name, dev_code, need_cookies):
+    def __init__(self, project_name, dev_code, public):
         self.name = project_name
         self.url = self.NFORGE_URLS[dev_code]
         self.dev_code = dev_code
 
         self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
 
-        if dev_code or need_cookies:
+        if dev_code or not public:
             # Get cookies from COOKIES file
             self.cookies = dict()
 

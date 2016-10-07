@@ -1,3 +1,18 @@
+"""
+   Copyright 2016 NAVER Corp.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
 import re
 import unittest
 
@@ -54,11 +69,24 @@ class TestGitHubMigration(unittest.TestCase):
             else:
                 continue
 
-    def test_download_migration(self):
+    def test_read_downloads(self):
+        ghm = GitHubMigration(False, 'd2coding-migration', 'Nforge/open_project/d2coding')
+
+        download = ghm.read_downloads()
+
+        for download_dict in download.values():
+            self.assertTrue(type(download_dict) is dict)
+
+    def test_invalid_download_migration(self):
         ghm = GitHubMigration(enterprise=True, token=self.valid_tokens[True], project_path=self.project_path,
                               repo_name='asd')
 
         self.assertFalse(ghm.downloads_migration())
+
+    def test_valid_download_migration(self):
+        ghm = GitHubMigration(False, 'd2coding-migration', 'Nforge/open_project/d2coding')
+        self.assertTrue(ghm.downloads_migration())
+
 
 if __name__ == '__main__':
     unittest.main()

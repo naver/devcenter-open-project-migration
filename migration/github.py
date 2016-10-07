@@ -1,10 +1,27 @@
 # -*- coding: utf-8 -*-
+"""
+   Copyright 2016 NAVER Corp.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
+import ast
 import glob
 import json
 import mimetypes
 import os
 import subprocess
 import time
+from builtins import open
 
 import github3
 import grequests
@@ -270,15 +287,16 @@ class GitHubMigration:
 
         if fail_code.match(str(check_commits)):
             print('Your repository does not have commits')
-            return False
 
         while not self.check_repo_migration():
             print('Checking repository migration status every %d seconds.' % WAIT_TIME)
             time.sleep(WAIT_TIME)
 
         for download_dict in self.downloads.values():
-            description = download_dict['json']
+            description = ast.literal_eval(download_dict['json'])
             files = download_dict['raw']
+
+            assert(type(description) is dict)
 
             tag_name = description['tag_name']
             target_commitish = description['target_commitish']

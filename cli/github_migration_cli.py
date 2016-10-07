@@ -1,6 +1,20 @@
 # -*- coding: utf-8 -*-
+"""
+   Copyright 2016 NAVER Corp.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
 import os
-import webbrowser
 
 import click
 from cli import CUR_DIR, DIRS
@@ -11,9 +25,9 @@ from migration.github import GitHubMigration, InvalidTokenError
 @click.option('--token', help='토큰 직접 입력')
 @click.option('--repo_name', prompt=True, help='GitHub 저장소 이름')
 @click.option('--enterprise', help='GitHub 엔터프라이즈 저장소 여부', is_flag=False, default=False)
-@click.option('--private', help='오픈 프로젝트 비공개 저장소 여부', prompt=True, is_flag=True, default=False)
+@click.option('--public', help='오픈 프로젝트 공개 저장소 여부', prompt=True, is_flag=True, default=True)
 @click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True, prompt=False, default=False)
-def github_migration_cli(dev_code, enterprise, repo_name, token, private):
+def github_migration_cli(dev_code, enterprise, repo_name, token, public):
     """ GitHub migration management """
 
     # Change current directory to root directory
@@ -56,25 +70,12 @@ def github_migration_cli(dev_code, enterprise, repo_name, token, private):
                 exit(-1)
             else:
                 click.echo(ghm.token + click.style(' is valid token', fg='blue'))
-                is_wiki = click.prompt('Did you made a wiki?(y/n)', type=bool)
-
-                if not is_wiki:
-                    wiki_create_page_url = '{2}/{0}/{1}/wiki/_new'.format(ghm.username, ghm.repo_name, ghm.url)
-
-                    # 위키 페이지를 만들 수 있도록 자동으로 웹 브라우저를 열어줌
-                    if webbrowser.open(wiki_create_page_url):
-                        click.echo('Please click the ' + click.style('Save Page', fg='green') +
-                                   ' button for creating wiki page!')
-                    else:
-                        click.echo(click.style('We failed for opening web browser', fg='red'))
-                        click.echo('Please go to ' + click.style(wiki_create_page_url +
-                                                                 'and click save page button', fg='green'))
 
                 if not ghm.issues_migration():
                     click.echo('Issue and board migration has failed')
 
                 # Only open project and GitHub repo do repo and downloads migration.
-                if not (dev_code or enterprise or private):
+                if not (dev_code or enterprise or not public):
                     if not ghm.repo_migration():
                         click.echo('Source code repository migration has failed')
 

@@ -1,12 +1,28 @@
 # -*- coding: utf-8 -*-
+"""
+   Copyright 2016 NAVER Corp.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
 import hashlib
-import json
 import logging
 import mimetypes
 import os
 import time
 
 import requests
+import json
+from builtins import str, open
 from cli import DIRS
 from future.moves.urllib.parse import urlparse, urljoin
 from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
@@ -41,7 +57,7 @@ class Milestone:
 class Nforge:
     cookies = None
     SUB_DIRS = ('raw', 'xml', 'json')
-    NFORGE_URLS = ('http://staging.dev.naver.com', 'http://devcode.nhncorp.com/')
+    NFORGE_URLS = ('http://dev.naver.com', 'http://devcode.nhncorp.com/')
     ID_TAGS = ('artifact_id', 'release_id')
 
     COOKIE_FILE = 'COOKIES'
@@ -50,14 +66,14 @@ class Nforge:
     print_type = "%Y/%m/%d %H:%M:%S"
     github_type = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self, project_name, dev_code, need_cookies):
+    def __init__(self, project_name, dev_code, public):
         self.name = project_name
         self.url = self.NFORGE_URLS[dev_code]
         self.dev_code = dev_code
 
         self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
 
-        if dev_code or need_cookies:
+        if dev_code or not public:
             # Get cookies from COOKIES file
             self.cookies = dict()
 
@@ -170,15 +186,15 @@ class Nforge:
             vcs = 'subversion'
             vcs_url = 'https://{2}/{0}/{1}'.format(self.vcs, self.name, url)
 
-        code_info = dict(
+        code_info = json.dumps(dict(
             vcs=vcs,
             vcs_url=vcs_url,
             vcs_username=vcs_username,
             vcs_password=vcs_password
-        )
+        ))
 
         with open(os.path.join(self.path, CODE_INFO_FILE), 'w', encoding='utf-8') as code_info_json:
-            json.dump(code_info, code_info_json)
+            code_info_json.write(str(code_info))
 
         return code_info
 
@@ -344,7 +360,7 @@ class Nforge:
             ))
 
         with open(os.path.join(self.issues_path, 'json', issue_id + '.json'), 'w') as json_file:
-            json_file.write(issue_json)
+            json_file.write(str(issue_json))
 
     def make_download(self, release_id, soup):
         raw_file_path = os.path.join(self.downloads_path, 'raw', release_id)
@@ -361,10 +377,16 @@ class Nforge:
 
         version = str(self.get_version(name))
 
+        download_json = dict(
+            tag_name=version,
+            target_commitish='master',
+            name=name, body=desc,
+            prerelease=False,
+            draft=False
+        )
+
         with open(os.path.join(self.downloads_path, 'json', release_id + '.json'), 'w') as json_file:
-            json.dump(dict(
-                tag_name=version, target_commitish='master', name=name, body=desc, prerelease=False, draft=False
-            ), json_file, ensure_ascii=False)
+            json.dump(str(download_json), json_file, ensure_ascii=False)
 
         if files_tag:
             for release_file in files_tag.findAll('file'):

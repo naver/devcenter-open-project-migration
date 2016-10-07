@@ -40,28 +40,31 @@
 위의 설치법을 따라하셨다면 pip가 자동으로 설치되있을 것입니다. 그러나 `pip --version` 을 실행하셨을 때 오류가 발생하신다면 아래 과정을 따라해주세요.
   1. https://bootstrap.pypa.io/get-pip.py 파일을 다운로드하세요.
   2. `$ python get-pip.py`
-  3. pip 설치 버전 확인: ``$ pip --version`
+  3. pip 설치 버전 확인: `$ pip --version`
 
 #### Linux/Mac OS
   1. pip 설치 스크립트 다운로드: `$ curl https://bootstrap.pypa.io/get-pip.py > get-pip.py`
   2. pip 설치: `$ sudo python get-pip.py`
-  3. pip 설치 버전 확인: ``$ pip --version`
+  3. pip 설치 버전 확인: `$ pip --version`
 
 ## 모듈 설치 방법
 python, git, pip가 설치되었으면 다음의 명령어를 입력하여 모듈을 설치합니다.   
 
 ### Linux, Mac 사용자
 아래의 명령어만 입력하면 마이그레이션 모듈이 설치됩니다.
-> $ pip install nforge_migration
+`$ pip install nforge_migration`
 
 ### Windows 사용자
-1. Lxml (XML 파서)설치파일 다운로드
-    - 32 bit: http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp27-cp27m-win32.whl
-    - 64 bit: http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp27-cp27m-win_amd64.whl
-2. Lxml 파서 설치
-   > $ pip install lxml-3.6.4-cp35-cp35m-win32.whl
-3. 마이그레이션 모듈 설치
-  > $ pip install nforge_migration
+1. Lxml (XML 파서) 설치파일 다운로드
+   - 자신의 파이썬 버전과 운영체제에 맞는 설치파일을 다운로드해주세요.
+   - Python 2.7 [32 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp27-cp27m-win32.whl) [64 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp27-cp27m-win_amd64.whl)
+   - Python 3.4 [32 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp34-cp34m-win32.whl) [64 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp34-cp34m-win_amd64.whl)
+   - Python 3.5 [32 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp35-cp35m-win32.whl) [64 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp35-cp35m-win_amd64.whl)
+      
+2. Lxml (XML 파서) 설치 `$ pip install (다운로드한 파일명)`
+
+3. 마이그레이션 모듈 설치 
+`$ pip install nforge_migration`
 
 
 ### 마이그레이션 모듈 소스를 이용한 직접 설치
@@ -72,7 +75,8 @@ python, git, pip가 설치되었으면 다음의 명령어를 입력하여 모�
   $ cd devcenter-openproject-migration
   $ sudo pip install -e .
    ```
-- 설치 완료 확인: `npa --help` 명령어를 입력하셨을 때 아래와 같은 화면이 보이면 설치가 완료된 것 입니다.
+### 설치 완료 확인
+`npa --help` 명령어를 입력하셨을 때 아래와 같은 화면이 보이면 설치가 완료된 것 입니다.
 
   ```sh
   Usage: npa [OPTIONS]

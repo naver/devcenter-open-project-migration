@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='nforge_migration',
-    version='1.0.1',
+    version='1.0.1a1',
     description='Migrate nForge project to GitHub',
     author='Taehwan Kim',
     author_email='maxtortime@navercorp.com',
@@ -41,10 +41,16 @@ setup(
         ghm=cli.github_migration_cli:github_migration_cli
     ''',
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
         "Environment :: Console",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.5",
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
+    license='Apache License, Version 2.0',
+    keywords='nForge migration github naver open_project'
 )

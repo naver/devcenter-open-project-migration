@@ -60,10 +60,10 @@ python, git, pip가 설치되었으면 다음의 명령어를 입력하여 모�
    - Python 2.7 [32 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp27-cp27m-win32.whl) [64 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp27-cp27m-win_amd64.whl)
    - Python 3.4 [32 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp34-cp34m-win32.whl) [64 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp34-cp34m-win_amd64.whl)
    - Python 3.5 [32 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp35-cp35m-win32.whl) [64 bit](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp35-cp35m-win_amd64.whl)
-      
+
 2. Lxml (XML 파서) 설치 `$ pip install (다운로드한 파일명)`
 
-3. 마이그레이션 모듈 설치 
+3. 마이그레이션 모듈 설치
 `$ pip install nforge_migration`
 
 
@@ -169,7 +169,6 @@ Please input number of project that you want to migrate to GitHub
 Please input number 0: nforge : 0
 405a49d88436e2873dcd2aaab5495fa84fd8c699 is valid token
 ```
-
 
 ### 비공개 오픈 프로젝트 대상 GitHub 마이그레이션
 - 본 과정은 네이버 오픈 프로젝트를 `비공개`상태로 해놓은 프로젝트 대상입니다.

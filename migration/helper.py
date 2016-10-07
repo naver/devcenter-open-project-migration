@@ -16,9 +16,8 @@
 """
 import os
 import sys
-from imp import reload
-
 from bs4 import BeautifulSoup
+from imp import reload
 
 
 def making_soup(content, doc_type):

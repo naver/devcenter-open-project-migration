@@ -21,17 +21,17 @@ import mimetypes
 import os
 import subprocess
 import time
-from builtins import open
 
 import github3
 import grequests
 import requests
+from builtins import open, input, str
 from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
-from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR, fail_code
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from tqdm import tqdm
 
+from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR, fail_code
 from .helper import get_fn, chunks
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)

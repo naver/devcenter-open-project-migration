@@ -20,7 +20,6 @@ import json
 import mimetypes
 import os
 import subprocess
-import time
 
 import github3
 import grequests
@@ -28,10 +27,10 @@ import requests
 from builtins import open, input, str
 from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
+from migration import CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR, fail_code
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from tqdm import tqdm
 
-from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR, fail_code
 from .helper import get_fn, chunks
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -61,6 +60,8 @@ class GitHubMigration:
         'content-type': "application/json",
     }
 
+    token_file_name = 'token.txt'
+
     def __init__(self, enterprise, repo_name, project_path, **kwargs):
         provider = 'oss.navercorp' if enterprise else 'github'
 
@@ -69,7 +70,7 @@ class GitHubMigration:
 
         self.__api_url = self.__url + '/api/v3/' if enterprise \
             else url_parsed.scheme + '://api.{0}/'.format(url_parsed.netloc)
-        self.__token_file_path = os.path.join('data', '{0}_ACCESS_TOKEN').format(provider)
+
         self.__enterprise = enterprise
         self.__token = kwargs.get('token')
         self.__repo_name = repo_name
@@ -84,14 +85,14 @@ class GitHubMigration:
             # After confirming token and writing file
             mode = 'w'
         else:
-            if not os.path.exists(self.__token_file_path):
+            if not os.path.exists(self.token_file_name):
                 self.__token = str(input('Please input token: '))
                 self.confirm_token(self.__token)
                 mode = 'w'
             else:
                 mode = 'r'
 
-        with open(self.token_file_path, mode) as token_file:
+        with open(self.token_file_name, mode) as token_file:
             if mode == 'w':
                 token_file.write(self.__token)
             else:
@@ -136,10 +137,6 @@ class GitHubMigration:
     @property
     def token(self):
         return self.__token
-
-    @property
-    def token_file_path(self):
-        return self.__token_file_path
 
     @property
     def enterprise(self):
@@ -260,7 +257,7 @@ class GitHubMigration:
             ('git', 'add', '--all'),
             ('git', 'commit', '-m', 'all asset commit'),
             ('git', 'remote', 'add', 'origin', push_wiki_git),
-            ('git', 'pull', '-f', push_wiki_git, 'master'),
+            ('git', 'pull', '-f', '--no-edit', push_wiki_git, 'master'),
             ('git', 'push', '-f', push_wiki_git, 'master')
         )
 
@@ -283,16 +280,10 @@ class GitHubMigration:
         return True if status == 'complete' else False
 
     def downloads_migration(self):
-        check_commits = requests.get(self.basis_repo_url + '/commits').status_code
+        print('Begin download migration...')
+        assert(self.repo.commit, '[ERROR} First, import your repository...')
 
-        if fail_code.match(str(check_commits)):
-            print('Your repository does not have commits')
-
-        while not self.check_repo_migration():
-            print('Checking repository migration status every %d seconds.' % WAIT_TIME)
-            time.sleep(WAIT_TIME)
-
-        for download_dict in self.downloads.values():
+        for download_dict in tqdm(self.downloads.values()):
             description = ast.literal_eval(download_dict['json'])
             files = download_dict['raw']
 

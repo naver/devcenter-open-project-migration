@@ -11,9 +11,10 @@ GITHUB_ACCESS_TOKEN
 ENTERPRISE_ACCESS_TOKEN
 credentials.py
 .idea/
-COOKIES
 data
 Nforge
+cookies.txt
+token.txt
 
 # Github provided
 # Byte-compiled / optimized / DLL files

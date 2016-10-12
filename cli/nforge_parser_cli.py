@@ -21,14 +21,15 @@ from migration.nforge import Nforge
 
 
 @click.command()
-@click.option('--project_name', type=str, help='오픈 프로젝트 이름', prompt=True)
-@click.option('--public', help='오픈 프로젝트 공개 저장소 여부', is_flag=True, prompt=True, default=True)
-@click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True, prompt=False)
-def nforge_parser_cli(project_name, dev_code, public):
+@click.option('--name', type=str, help='오픈 프로젝트 이름', prompt=True)
+@click.option('--private', help='오픈 프로젝트 비공개 저장소 여부', is_flag=True, default=False)
+@click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True, default=False)
+def nforge_parser_cli(name, dev_code, private):
     """
     Command line interface for parsing Nforge project.
     """
-    project = Nforge(project_name, dev_code, public)
+    project_name = name
+    project = Nforge(project_name, dev_code, private)
     project.developers()
     project.code_info()
     project.wiki()

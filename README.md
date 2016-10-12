@@ -75,17 +75,19 @@ python, git, pip가 설치되었으면 다음의 명령어를 입력하여 모�
   $ cd devcenter-openproject-migration
   $ sudo pip install -e .
    ```
+
 ### 설치 완료 확인
 `npa --help` 명령어를 입력하셨을 때 아래와 같은 화면이 보이면 설치가 완료된 것 입니다.
 
   ```sh
   Usage: npa [OPTIONS]
 
-    Command line interface for parsing Nforge project.
+  Command line interface for parsing Nforge project.
 
-  Options:
-  --project_name TEXT  nFORGE project name
-  --dev_code           Is DevCode project
+Options:
+  --name TEXT  오픈 프로젝트 이름
+  --private            오픈 프로젝트 비공개 저장소 여부
+  --dev_code           DevCode 프로젝트인지
   --help               Show this message and exit.
   ```
 
@@ -114,16 +116,10 @@ python, git, pip가 설치되었으면 다음의 명령어를 입력하여 모�
         ```
 
 ### 네이버 오픈프로젝트 백업
-* npa 명령어를 실행하면 아래와 같이 옵션을 입력하는 프롬프트가 나오게 됩니다.
-
-  ```sh
-  $ npa
-  Project name: nforge
-  Public [Y/n]: y
-  ```
-* 공개 프로젝트라면 `Public` 옵션은 `y` 아니라면 `n`을 입력해주세요.
-* 진행 상태를 나타내는 막대가 출력되면서 프로젝트 다운로드가 수행됩니다.
-* `모듈 설치 폴더/Nforge/open_project/프로젝트 이름` 에 프로젝트들이 다운로드 되며, 폴더는 아래와 같은 구조로 구성되어 있습니다.
+* `npa` 명령어를 아래의 안내와 같이 터미널에 입력해주세요.
+    * 공개 프로젝트: `npa --name 프로젝트이름`
+    * 비공개 프로젝트: `npa --name 프로젝트이름 --private`
+* `현재 작업 경로/Nforge/open_project/프로젝트 이름` 에 프로젝트들이 다운로드 되며, 폴더는 아래와 같은 구조로 구성되어 있습니다.
 
     ```
     Nforge
@@ -159,7 +155,7 @@ python, git, pip가 설치되었으면 다음의 명령어를 입력하여 모�
 4. [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) `Personal Access Token`을 생성하신 후 모듈을 설치하신 디렉토리에 `data`라는 디렉토리를 만드시고 `github_ACCESS_TOKEN` 이라는 파일에 토큰을 넣어주세요.
 
 #### 마이그레이션 모듈 실행
-1. `ghm` 명령어를 실행하면 아래와 같이 옵션을 입력하는 프롬프트가 나오며, `Public[Y/n]:`라는 물음에 대해 `Y`로 입력하면 됩니다.
+1. 터미널에 `ghm --name 저장소이름` 이라고 입력해주세요.
 
 2. `Nforge/open_project` 에 있는 프로젝트들 중 하나를 골라 마이그레이션을 수행하게 됩니다. 아래의 프롬포트 예제처럼 출력되는 번호들 중 하나를 입력해주세요. 없는 번호를 고르시면 프로그램이 종료됩니다.
 ```sh
@@ -183,7 +179,7 @@ Please input number 0: nforge : 0
 7. [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) `Personal Access Token`을 생성하신 후 프로젝트 디렉토리에 `data`라는 디렉토리를 만드시고 `github_ACCESS_TOKEN` 이라는 파일에 토큰을 넣어주세요.
 
 #### 마이그레이션 모듈 실행
-1. `ghm` 명령어를 실행하면 아래와 같이 옵션을 입력하는 프롬프트가 나오며, `Public[Y/n]:`라는 물음에 대해 `n`로 입력하면 됩니다.
+1. 터미널에 `ghm --name 저장소이름 --private` 이라고 입력해주세요.
 
 2. `Nforge/open_project` 에 있는 프로젝트들 중 하나를 골라 마이그레이션을 수행하게 됩니다. 아래의 프롬포트 예제처럼 출력되는 번호들 중 하나를 입력해주세요. 없는 번호를 고르시면 프로그램이 종료됩니다.
 

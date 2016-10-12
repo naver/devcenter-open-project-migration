@@ -66,14 +66,14 @@ class Nforge:
     print_type = "%Y/%m/%d %H:%M:%S"
     github_type = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self, project_name, dev_code, public):
+    def __init__(self, project_name, dev_code, private):
         self.name = project_name
         self.url = self.NFORGE_URLS[dev_code]
         self.dev_code = dev_code
 
         self.project_url = '{0}/projects/{1}'.format(self.url, self.name)
 
-        if dev_code or not public:
+        if dev_code or private:
             # Get cookies from COOKIES file
             self.cookies = dict()
 
@@ -85,7 +85,7 @@ class Nforge:
                     cookie_split = cookie.split('=')
                     self.cookies[cookie_split[0]] = cookie_split[1].replace('\n', '')
             except EnvironmentError:
-                raise InvalidCookieError
+                raise InvalidCookieError(self.cookies)
 
         request_main_html = requests.get(self.project_url, cookies=self.cookies)
 

@@ -23,12 +23,14 @@ from migration.github import GitHubMigration, InvalidTokenError
 
 @click.command()
 @click.option('--token', help='토큰 직접 입력')
-@click.option('--repo_name', prompt=True, help='GitHub 저장소 이름')
+@click.option('--name', prompt=True, help='GitHub 저장소 이름')
 @click.option('--enterprise', help='GitHub 엔터프라이즈 저장소 여부', is_flag=False, default=False)
-@click.option('--public', help='오픈 프로젝트 공개 저장소 여부', prompt=True, is_flag=True, default=True)
+@click.option('--private', help='오픈 프로젝트 비공개 저장소 여부', is_flag=True, default=False)
 @click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True, prompt=False, default=False)
-def github_migration_cli(dev_code, enterprise, repo_name, token, public):
+def github_migration_cli(dev_code, enterprise, name, token, private):
     """ GitHub migration management """
+
+    repo_name = name
 
     # Change current directory to root directory
     os.chdir(CUR_DIR)
@@ -75,7 +77,7 @@ def github_migration_cli(dev_code, enterprise, repo_name, token, public):
                     click.echo('Issue and board migration has failed')
 
                 # Only open project and GitHub repo do repo and downloads migration.
-                if not (dev_code or enterprise or not public):
+                if not (dev_code or enterprise or private):
                     if not ghm.repo_migration():
                         click.echo('Source code repository migration has failed')
 

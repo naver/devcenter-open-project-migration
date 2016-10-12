@@ -61,6 +61,8 @@ class GitHubMigration:
         'content-type': "application/json",
     }
 
+    token_file_name = 'token.txt'
+
     def __init__(self, enterprise, repo_name, project_path, **kwargs):
         provider = 'oss.navercorp' if enterprise else 'github'
 
@@ -69,7 +71,7 @@ class GitHubMigration:
 
         self.__api_url = self.__url + '/api/v3/' if enterprise \
             else url_parsed.scheme + '://api.{0}/'.format(url_parsed.netloc)
-        self.__token_file_path = os.path.join('data', '{0}_ACCESS_TOKEN').format(provider)
+
         self.__enterprise = enterprise
         self.__token = kwargs.get('token')
         self.__repo_name = repo_name
@@ -84,14 +86,14 @@ class GitHubMigration:
             # After confirming token and writing file
             mode = 'w'
         else:
-            if not os.path.exists(self.__token_file_path):
+            if not os.path.exists(self.token_file_name):
                 self.__token = str(input('Please input token: '))
                 self.confirm_token(self.__token)
                 mode = 'w'
             else:
                 mode = 'r'
 
-        with open(self.token_file_path, mode) as token_file:
+        with open(self.token_file_name, mode) as token_file:
             if mode == 'w':
                 token_file.write(self.__token)
             else:
@@ -138,8 +140,8 @@ class GitHubMigration:
         return self.__token
 
     @property
-    def token_file_path(self):
-        return self.__token_file_path
+    def token_file_name(self):
+        return self.token_file_name
 
     @property
     def enterprise(self):

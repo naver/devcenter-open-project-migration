@@ -60,8 +60,8 @@ class Nforge:
     NFORGE_URLS = ('http://dev.naver.com', 'http://devcode.nhncorp.com/')
     ID_TAGS = ('artifact_id', 'release_id')
 
-    COOKIE_FILE = 'COOKIES'
-    COOKIE_PATH = os.path.join(DIRS[0], COOKIE_FILE)
+    COOKIE_FILE = 'cookies.txt'
+    # COOKIE_PATH = os.path.join(DIRS[0], COOKIE_FILE)
 
     print_type = "%Y/%m/%d %H:%M:%S"
     github_type = "%Y-%m-%dT%H:%M:%SZ"
@@ -78,7 +78,7 @@ class Nforge:
             self.cookies = dict()
 
             try:
-                with open(self.COOKIE_PATH) as f:
+                with open(self.COOKIE_FILE) as f:
                     cookie_list = [cookie for cookie in f]
 
                 for cookie in cookie_list:

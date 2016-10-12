@@ -77,19 +77,21 @@ python, git, pip가 설치되었으면 다음의 명령어를 입력하여 모�
    ```
 
 ### 설치 완료 확인
-`npa --help` 명령어를 입력하셨을 때 아래와 같은 화면이 보이면 설치가 완료된 것 입니다.
+- `npa --help` 명령어를 입력하셨을 때 아래와 같은 화면이 보이면 설치가 완료된 것 입니다.
 
   ```sh
   Usage: npa [OPTIONS]
 
   Command line interface for parsing Nforge project.
 
-Options:
-  --name TEXT  오픈 프로젝트 이름
-  --private            오픈 프로젝트 비공개 저장소 여부
-  --dev_code           DevCode 프로젝트인지
-  --help               Show this message and exit.
+  Options:
+    --name TEXT  오픈 프로젝트 이름
+    --private            오픈 프로젝트 비공개 저장소 여부
+    --dev_code           DevCode 프로젝트인지
+    --help               Show this message and exit.
   ```
+- 설치 완료 후 작업을 위한 폴더를 만들어주세요.
+
 
 ## 모듈 사용 방법    
 본 모듈은 아래 2가지 기능을 제공합니다.
@@ -107,19 +109,19 @@ Options:
    - 비공개 프로젝트 관련 인증 키값 추출 방법
         1. [오픈 프로젝트](http://dev.naver.com/projects)에 로그인 해주세요.
         2.  웹브라우저 주소창에 직접 `javascript:document.cookie` 라고 입력하세요. ( Ctrl C / V 하시면 안됩니다.)
-        3. 입력후 브라우저에 나오는 텍스트 값중에서 `NID_SES`와 `NID_AUT` 두 값을 복사해주세요.
-        4.  `프로젝트 폴더/data` 에 `COOKIES` 라는 파일을 만들어주세요.
-        5. 아래와 같은 형식으로 `COOKIES` 파일을 채워주시고 저장하세요. (순서는 상관없음, 맨마지막 세미콜론은 지울 것)
+        3. 웹브라우저에 보이는 값들 중 `NID_SES`와 `NID_AUT` 값을 복사해주세요.
+        4. 작업 폴더에 `cookies.txt` 라는 파일을 만들어주세요.
+        5. 아래와 같은 형식으로 `cookies.txt` 파일을 채워주시고 저장하세요. (쿠키 값의 맨마지막 세미콜론은 지울 것)
         ```
         NID_SES=키값
-       NID_AUT=키값
+        NID_AUT=키값
         ```
 
 ### 네이버 오픈프로젝트 백업
 * `npa` 명령어를 아래의 안내와 같이 터미널에 입력해주세요.
     * 공개 프로젝트: `npa --name 프로젝트이름`
     * 비공개 프로젝트: `npa --name 프로젝트이름 --private`
-* `현재 작업 경로/Nforge/open_project/프로젝트 이름` 에 프로젝트들이 다운로드 되며, 폴더는 아래와 같은 구조로 구성되어 있습니다.
+* `작업 폴더/Nforge/open_project/프로젝트 이름` 에 프로젝트들이 다운로드 되며, 폴더는 아래와 같은 구조로 구성되어 있습니다.
 
     ```
     Nforge
@@ -152,7 +154,7 @@ Options:
 1. [GitHub](https://github.com) 계정이 없는 분은 github 회원가입을 해주세요. **[참고](https://help.github.com/articles/signing-up-for-a-new-github-account/)**
 2. 마이그레이션이 수행될 저장소(Repository)를 만들어주세요. **[참고](https://help.github.com/articles/create-a-repo/)**
 3. 위에서 만든 저장소의 위키를 만들어주세요. **[참고](https://help.github.com/articles/adding-wiki-pages-via-the-online-interface/)**
-4. [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) `Personal Access Token`을 생성하신 후 모듈을 설치하신 디렉토리에 `data`라는 디렉토리를 만드시고 `github_ACCESS_TOKEN` 이라는 파일에 토큰을 넣어주세요.
+4. [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) `Personal Access Token`을 생성하고 작업 폴더에 `token.txt` 라는 파일을 만들고 토큰을 파일에 넣고 저장해주세요.
 
 #### 마이그레이션 모듈 실행
 1. 터미널에 `ghm --name 저장소이름` 이라고 입력해주세요.
@@ -176,7 +178,7 @@ Please input number 0: nforge : 0
 4. 저장소 이름과 비공개 여부를 체크하고 마이그레이션을 시작하게 되면 몇 초후 아이디와 비밀번호를 입력하는 폼이 보입니다. 이때 네이버 아이디와 비밀번호를 입력해주세요.
 5.  소스 코드 저장소 마이그레이션이 끝나면 GitHub에 등록해놓은 메일로 완료 안내가 갑니다.
 6. 위에서 만든 저장소의 위키를 만들어주세요. **[참고](https://help.github.com/articles/adding-wiki-pages-via-the-online-interface/)**
-7. [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) `Personal Access Token`을 생성하신 후 프로젝트 디렉토리에 `data`라는 디렉토리를 만드시고 `github_ACCESS_TOKEN` 이라는 파일에 토큰을 넣어주세요.
+7. [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) `Personal Access Token`을 생성하고 작업 폴더에 `token.txt` 라는 파일을 만들고 토큰을 파일에 넣고 저장해주세요.
 
 #### 마이그레이션 모듈 실행
 1. 터미널에 `ghm --name 저장소이름 --private` 이라고 입력해주세요.
@@ -184,7 +186,7 @@ Please input number 0: nforge : 0
 2. `Nforge/open_project` 에 있는 프로젝트들 중 하나를 골라 마이그레이션을 수행하게 됩니다. 아래의 프롬포트 예제처럼 출력되는 번호들 중 하나를 입력해주세요. 없는 번호를 고르시면 프로그램이 종료됩니다.
 
 ```sh
-Repo name: nforge
+Repo name: 프로젝트이름
 Public[Y/n]: y
 Please input number of project that you want to migrate to GitHub
 Please input number 0: nforge : 0

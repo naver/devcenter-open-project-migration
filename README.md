@@ -121,7 +121,14 @@ python, git, pip가 설치되었으면 다음의 명령어를 입력하여 모�
 * `npa` 명령어를 아래의 안내와 같이 터미널에 입력해주세요.
     * 공개 프로젝트: `npa --name 프로젝트이름`
     * 비공개 프로젝트: `npa --name 프로젝트이름 --private`
-* `작업 폴더/Nforge/open_project/프로젝트 이름` 에 프로젝트들이 다운로드 되며, 폴더는 아래와 같은 구조로 구성되어 있습니다.
+
+* 자동으로 프로젝트들이 다운로드되고 아무 메시지 없이 끝났다면 성공한 것입니다.
+```
+Now making 7267.xml and 7267.json of download: 100%|███| 2/2 [00:01<00:00,  1.04s/it]
+Now making 98439.xml and 98439.json of issue: 100%|███| 21/21 [00:09<00:00,  2.78it/s]
+Now making 98483.xml and 98483.json of forum: 100%|███| 11/11 [00:02<00:00,  3.17it/s]
+```
+* `작업 폴더/Nforge/open_project/프로젝트 이름` 에 프로젝트들이 다운로드 됩니다. 폴더는 아래와 같은 구조로 구성되어 있습니다.
 
     ```
     Nforge
@@ -142,56 +149,51 @@ python, git, pip가 설치되었으면 다음의 명령어를 입력하여 모�
             └── milestones # 마일스톤 XML
     ```
 
-### 공개 오픈 프로젝트 대상 GitHub 마이그레이션
-- 본 과정은 네이버 오픈 프로젝트를 `공개`상태로 해놓은 프로젝트 대상입니다.
-
+### GitHub 마이그레이션
 #### Github로 마이그레이션을 위한 조건
-1. github 저장소 생성
-2. 해당 저장소에 위키 생성
-3. 해당 저장소에 대한 접근토큰값(Personal Access Token)이 있어야 합니다.
+- GitHub 저장소 생성
+- 해당 저장소에 위키 생성
+- 해당 저장소에 대한 접근토큰값(Personal Access Token)
 
-#### 마이그레이션 사전 준비
-1. [GitHub](https://github.com) 계정이 없는 분은 github 회원가입을 해주세요. **[참고](https://help.github.com/articles/signing-up-for-a-new-github-account/)**
-2. 마이그레이션이 수행될 저장소(Repository)를 만들어주세요. **[참고](https://help.github.com/articles/create-a-repo/)**
-3. 위에서 만든 저장소의 위키를 만들어주세요. **[참고](https://help.github.com/articles/adding-wiki-pages-via-the-online-interface/)**
-4. [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) `Personal Access Token`을 생성하고 작업 폴더에 `token.txt` 라는 파일을 만들고 토큰을 파일에 넣고 저장해주세요.
+조건을 충족한 후 마이그레이션 명령어 수행을 위해 아래 안내를 차례대로 따라해주세요.
 
-#### 마이그레이션 모듈 실행
-1. 터미널에 `ghm --name 저장소이름` 이라고 입력해주세요.
-
-2. `Nforge/open_project` 에 있는 프로젝트들 중 하나를 골라 마이그레이션을 수행하게 됩니다. 아래의 프롬포트 예제처럼 출력되는 번호들 중 하나를 입력해주세요. 없는 번호를 고르시면 프로그램이 종료됩니다.
-```sh
-Repo name: nforge
-Public[Y/n]: y
-Please input number of project that you want to migrate to GitHub
-Please input number 0: nforge : 0
-405a49d88436e2873dcd2aaab5495fa84fd8c699 is valid token
-```
-
-### 비공개 오픈 프로젝트 대상 GitHub 마이그레이션
-- 본 과정은 네이버 오픈 프로젝트를 `비공개`상태로 해놓은 프로젝트 대상입니다.
-
-#### 마이그레이션 사전 준비
-1. [GitHub](https://github.com) 계정이 없는 분은 github 회원가입을 해주세요. **[참고](https://help.github.com/articles/signing-up-for-a-new-github-account/)**
+#### 마이그레이션 준비
+1. [GitHub](https://github.com) 계정이 없는 분은 회원가입을 해주세요. **[참고](https://help.github.com/articles/signing-up-for-a-new-github-account/)**
 2. [GitHub 저장소 import  링크로 이동](https://github.com/new/import/)  
-3. `Old clone URL` 에는 `오픈 프로젝트->코드` 탭에서 확인할 수 있는 `git clone` URL 혹은 `svn`의 URL을 입력하세요.
-4. 저장소 이름과 비공개 여부를 체크하고 마이그레이션을 시작하게 되면 몇 초후 아이디와 비밀번호를 입력하는 폼이 보입니다. 이때 네이버 아이디와 비밀번호를 입력해주세요.
-5.  소스 코드 저장소 마이그레이션이 끝나면 GitHub에 등록해놓은 메일로 완료 안내가 갑니다.
-6. 위에서 만든 저장소의 위키를 만들어주세요. **[참고](https://help.github.com/articles/adding-wiki-pages-via-the-online-interface/)**
-7. [이곳을 참고하셔서](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) `Personal Access Token`을 생성하고 작업 폴더에 `token.txt` 라는 파일을 만들고 토큰을 파일에 넣고 저장해주세요.
+3. `Your old repository’s clone URL` 에는 `오픈 프로젝트->코드` 탭에서 확인할 수 있는 `git clone` URL 혹은 `svn`의 URL을 입력하세요.
+4. `Your new repository details` 아래에 `Name`에 생성될 저장소 이름을 입력하세요.
+5. `Public/Private` 여부를 체크하고 `Begin import` 버튼을 눌러 시작하세요.
+6. Import를 시작하게 되면 몇 초후 아이디와 비밀번호를 입력하는 폼이 보입니다.
+    - 공개 프로젝트의 경우: 아이디/비밀번호 모두 `anonsvn` 입력
+    - 비공개 프로젝트의 경우: 네이버 아이디와 비밀번호
+5. 소스 코드 저장소 마이그레이션이 끝나면 GitHub에 등록하신 메일로 완료 안내가 갑니다.
+6. 메일을 받으신 후 아래 안내를 참고하셔서 위키와 접근토큰값을 만들어주세요.
 
-#### 마이그레이션 모듈 실행
-1. 터미널에 `ghm --name 저장소이름 --private` 이라고 입력해주세요.
+#### 저장소 Wiki 생성
+1. https://github.com/사용자아이디/프로젝트명/wiki 로 접속해서 `Create the first page` 버튼 클릭
+2. 페이지 우측 하단에 `Save Page` 버튼 클릭
 
-2. `Nforge/open_project` 에 있는 프로젝트들 중 하나를 골라 마이그레이션을 수행하게 됩니다. 아래의 프롬포트 예제처럼 출력되는 번호들 중 하나를 입력해주세요. 없는 번호를 고르시면 프로그램이 종료됩니다.
 
-```sh
-Repo name: 프로젝트이름
-Public[Y/n]: y
-Please input number of project that you want to migrate to GitHub
-Please input number 0: nforge : 0
-405a49d88436e2873dcd2aaab5495fa84fd8c699 is valid token
-```
+#### Personal Access Token 생성
+1. https://github.com/settings/tokens 으로 이동
+2. 우측 메뉴 상단에 `Generate new token` 버튼 클릭
+3. 아래 항목들을 입력
+    - `Token Description` (토큰 설명, 예: `openproject`)
+    - 체크박스들 중에 `repo` 항목에 체크
+4. 하단에 `Generate token` 버튼 클릭 후 나오는 코드값을 복사
+5. 작업 폴더에 `token.txt` 라는 파일을 만들고 복사한 토큰을 넣어준 후 저장한다.
+
+#### 마이그레이션 명령어 수행
+- `ghm --name GitHub저장소이름 --project_name 오픈프로젝트이름`
+- `오픈프로젝트이름` 은 위에서 다운로드한 오픈 프로젝트 이름과 일치해야 합니다.
+- `GitHub저장소이름` 은 위에서 만드신 저장소 이름과 일치해야 합니다.
+  ```
+   a8b9g3q9c... is valid token # 토큰 검증
+   53%|█| 17/32 [00:17<00:16,  1.11s/it] # 이슈 업로드
+   ... # Git 메시지 (이슈 첨부파일 업로드 과정)
+   100%|███| 2/2 [00:08<00:00,  5.34s # 다운로드 마이그레이션
+  ```
+- 위 과정을 거친 후 아무 에러메시지 없이 끝났다면 성공한 것입니다.
 
 ### 주의사항
 * 빠른 시간 내에 많은 GitHub 마이그레이션을 수행하면 [Abuse Rate Limits](https://developer.github.com/v3/#abuse-rate-limits)가 발생해 일시적으로 GitHub API를 호출할 수 없게 됩니다. 몇 분 후에 다시 시도해주세요.
@@ -224,7 +226,6 @@ Please input number 0: nforge : 0
 * 마일스톤이 어느 이슈에 링크되었는지 여부는 지원하지 않습니다.
 
 ### 코드
-* **비공개 프로젝트 일 경우 직접 옮겨 주셔야 합니다(공개 전환 후 가능함)**
 * 프로젝트의 git/SVN 저장소가 GitHub로 옮겨집니다.
 * GitHub는 SVN 방식의 디렉토리 구조를 따르지 않으므로 GitHub에서 저장소 구조가 조금 달라보일 수 있습니다.
 * [GitHub에서 SVN 클라이언트 이용하기](https://help.github.com/articles/support-for-subversion-clients/)

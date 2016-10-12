@@ -20,7 +20,6 @@ import json
 import mimetypes
 import os
 import subprocess
-import time
 
 import github3
 import grequests
@@ -28,10 +27,10 @@ import requests
 from builtins import open, input, str
 from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
+from migration import CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR, fail_code
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from tqdm import tqdm
 
-from migration import WAIT_TIME, CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR, fail_code
 from .helper import get_fn, chunks
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -138,10 +137,6 @@ class GitHubMigration:
     @property
     def token(self):
         return self.__token
-
-    @property
-    def token_file_name(self):
-        return self.token_file_name
 
     @property
     def enterprise(self):
@@ -262,7 +257,7 @@ class GitHubMigration:
             ('git', 'add', '--all'),
             ('git', 'commit', '-m', 'all asset commit'),
             ('git', 'remote', 'add', 'origin', push_wiki_git),
-            ('git', 'pull', '-f', push_wiki_git, 'master'),
+            ('git', 'pull', '-f', '--no-edit', push_wiki_git, 'master'),
             ('git', 'push', '-f', push_wiki_git, 'master')
         )
 
@@ -285,16 +280,10 @@ class GitHubMigration:
         return True if status == 'complete' else False
 
     def downloads_migration(self):
-        check_commits = requests.get(self.basis_repo_url + '/commits').status_code
+        print('Begin download migration...')
+        assert(self.repo.commit, '[ERROR} First, import your repository...')
 
-        if fail_code.match(str(check_commits)):
-            print('Your repository does not have commits')
-
-        while not self.check_repo_migration():
-            print('Checking repository migration status every %d seconds.' % WAIT_TIME)
-            time.sleep(WAIT_TIME)
-
-        for download_dict in self.downloads.values():
+        for download_dict in tqdm(self.downloads.values()):
             description = ast.literal_eval(download_dict['json'])
             files = download_dict['raw']
 

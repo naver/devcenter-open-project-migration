@@ -1,0 +1,568 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>migration.nforge &#8212; open_project_migration 1.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="open_project_migration 1.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">open_project_migration 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for migration.nforge</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">mimetypes</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">cli</span> <span class="k">import</span> <span class="n">DIRS</span>
+<span class="kn">from</span> <span class="nn">future.moves.urllib.parse</span> <span class="k">import</span> <span class="n">urlparse</span><span class="p">,</span> <span class="n">urljoin</span>
+<span class="kn">from</span> <span class="nn">migration</span> <span class="k">import</span> <span class="n">CODE_INFO_FILE</span><span class="p">,</span> <span class="n">ok_code</span><span class="p">,</span> <span class="n">DOWNLOADS_DIR</span><span class="p">,</span> <span class="n">ISSUES_DIR</span><span class="p">,</span> <span class="n">ISSUE_ATTACH_DIR</span>
+<span class="kn">from</span> <span class="nn">migration.helper</span> <span class="k">import</span> <span class="n">making_soup</span><span class="p">,</span> <span class="n">make_dirs</span><span class="p">,</span> <span class="n">get_fn</span>
+<span class="kn">from</span> <span class="nn">requests</span> <span class="k">import</span> <span class="n">request</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="k">import</span> <span class="n">tqdm</span>
+
+
+<div class="viewcode-block" id="Milestone"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Milestone">[docs]</a><span class="k">class</span> <span class="nc">Milestone</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">milestone</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">milestone</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_artifact_id</span> <span class="o">=</span> <span class="n">milestone</span><span class="o">.</span><span class="n">group_artifact_id</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">milestone</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">due_date</span> <span class="o">=</span> <span class="n">milestone</span><span class="o">.</span><span class="n">duedate</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">milestone</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+
+        <span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;open&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="ow">is</span> <span class="s1">&#39;PROGRESS&#39;</span> <span class="k">else</span> <span class="s1">&#39;closed&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">title</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+                <span class="n">state</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+                <span class="n">description</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+                <span class="n">due_on</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">due_date</span><span class="p">)))</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">json</span></div>
+
+
+<div class="viewcode-block" id="InvalidProjectError"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.InvalidProjectError">[docs]</a><span class="k">class</span> <span class="nc">InvalidProjectError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pr_name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pr_name</span> <span class="o">=</span> <span class="n">pr_name</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">not_found_project_msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> does not exist.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pr_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">not_found_project_msg</span></div>
+
+
+<div class="viewcode-block" id="InvalidCookieError"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.InvalidCookieError">[docs]</a><span class="k">class</span> <span class="nc">InvalidCookieError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cookies</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cookies</span> <span class="o">=</span> <span class="n">cookies</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Please make valid cookies to data/COOKIES&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">msg</span></div>
+
+
+<div class="viewcode-block" id="Nforge"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge">[docs]</a><span class="k">class</span> <span class="nc">Nforge</span><span class="p">:</span>
+    <span class="n">cookies</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">SUB_DIRS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;raw&#39;</span><span class="p">,</span> <span class="s1">&#39;xml&#39;</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">)</span>
+    <span class="n">NFORGE_URLS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;http://staging.dev.naver.com&#39;</span><span class="p">,</span> <span class="s1">&#39;http://devcode.nhncorp.com/&#39;</span><span class="p">)</span>
+    <span class="n">ID_TAGS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;artifact_id&#39;</span><span class="p">,</span> <span class="s1">&#39;release_id&#39;</span><span class="p">)</span>
+
+    <span class="n">COOKIE_FILE</span> <span class="o">=</span> <span class="s1">&#39;COOKIES&#39;</span>
+    <span class="n">COOKIE_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DIRS</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">COOKIE_FILE</span><span class="p">)</span>
+
+    <span class="n">print_type</span> <span class="o">=</span> <span class="s2">&quot;%Y/%m/</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span>
+    <span class="n">github_type</span> <span class="o">=</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_name</span><span class="p">,</span> <span class="n">dev_code</span><span class="p">,</span> <span class="n">need_cookies</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">project_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NFORGE_URLS</span><span class="p">[</span><span class="n">dev_code</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dev_code</span> <span class="o">=</span> <span class="n">dev_code</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_url</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">/projects/</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dev_code</span> <span class="ow">or</span> <span class="n">need_cookies</span><span class="p">:</span>
+            <span class="c1"># Get cookies from COOKIES file</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cookies</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">COOKIE_PATH</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">cookie_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">cookie</span> <span class="k">for</span> <span class="n">cookie</span> <span class="ow">in</span> <span class="n">f</span><span class="p">]</span>
+
+                <span class="k">for</span> <span class="n">cookie</span> <span class="ow">in</span> <span class="n">cookie_list</span><span class="p">:</span>
+                    <span class="n">cookie_split</span> <span class="o">=</span> <span class="n">cookie</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">[</span><span class="n">cookie_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">cookie_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">EnvironmentError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InvalidCookieError</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_main_html</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_url</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_main_soup</span> <span class="o">=</span> <span class="n">making_soup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_main_html</span><span class="p">,</span> <span class="s1">&#39;html&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_valid_project</span><span class="p">()</span>
+
+        <span class="n">project_type</span> <span class="o">=</span> <span class="s1">&#39;dev_code&#39;</span> <span class="k">if</span> <span class="n">dev_code</span> <span class="k">else</span> <span class="s1">&#39;open_project&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Nforge</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="n">project_type</span><span class="p">,</span> <span class="n">project_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">issues_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">ISSUES_DIR</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">downloads_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">DOWNLOADS_DIR</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attach_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">issues_path</span><span class="p">,</span> <span class="s1">&#39;raw&#39;</span><span class="p">,</span> <span class="n">ISSUE_ATTACH_DIR</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">issues_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">downloads_path</span><span class="p">]</span>
+
+        <span class="c1"># 폴더 구조 생성</span>
+        <span class="n">make_dirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">issues_path</span><span class="p">)</span>
+        <span class="n">make_dirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">downloads_path</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">sub_dir</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">SUB_DIRS</span><span class="p">:</span>
+            <span class="n">issue_data</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">issues_path</span><span class="p">,</span> <span class="n">sub_dir</span><span class="p">)</span>
+            <span class="n">download_data</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">downloads_path</span><span class="p">,</span> <span class="n">sub_dir</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">issue_data</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">issue_data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">download_data</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">download_data</span><span class="p">)</span>
+
+        <span class="n">src_soup</span> <span class="o">=</span> <span class="n">making_soup</span><span class="p">(</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_url</span> <span class="o">+</span> <span class="s1">&#39;/src&#39;</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="s1">&#39;html&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span> <span class="o">=</span> <span class="s1">&#39;svn&#39;</span> <span class="k">if</span> <span class="n">src_soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;div&#39;</span><span class="p">,</span> <span class="n">class_</span><span class="o">=</span><span class="s1">&#39;code_contents&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;git&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">urls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_url</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+<div class="viewcode-block" id="Nforge.create_url"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.create_url">[docs]</a>    <span class="k">def</span> <span class="nf">create_url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">urls</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;issue&#39;</span><span class="p">,</span> <span class="s1">&#39;forum&#39;</span><span class="p">,</span> <span class="s1">&#39;download&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">parse_type</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+            <span class="c1"># Board and issue list</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_url</span><span class="p">,</span> <span class="n">parse_type</span><span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span>
+
+            <span class="c1"># HTML parsing</span>
+            <span class="n">soup</span> <span class="o">=</span> <span class="n">making_soup</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="s1">&#39;html&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Get selected class by each parse_type</span>
+            <span class="n">cond_class</span> <span class="o">=</span> <span class="s1">&#39;menu_</span><span class="si">{0}</span><span class="s1"> on selected&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parse_type</span><span class="p">)</span>
+            <span class="n">class_list</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">class_</span><span class="o">=</span><span class="n">cond_class</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">class_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">class_list</span><span class="o">.</span><span class="n">ul</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">):</span>
+                    <span class="n">text</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s1">&#39;href&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/projects/&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">urls</span><span class="p">[</span><span class="n">text</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">.xml&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_url</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">urls</span><span class="p">[</span><span class="n">parse_type</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">.xml&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">urls</span></div>
+
+<div class="viewcode-block" id="Nforge.check_valid_project"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.check_valid_project">[docs]</a>    <span class="k">def</span> <span class="nf">check_valid_project</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_main_soup</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">title</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="s1">&#39;오류&#39;</span> <span class="ow">in</span> <span class="n">title</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidProjectError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">title</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">dev_code</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidCookieError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Nforge.code_info"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.code_info">[docs]</a>    <span class="k">def</span> <span class="nf">code_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">netloc</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">netloc</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">netloc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;staging.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Cannot migrate if url starts with staging.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span> <span class="ow">is</span> <span class="s1">&#39;git&#39;</span><span class="p">:</span>
+            <span class="n">vcs_username</span> <span class="o">=</span> <span class="s1">&#39;nobody&#39;</span>
+            <span class="n">vcs_password</span> <span class="o">=</span> <span class="s1">&#39;nobody&#39;</span>
+            <span class="n">vcs</span> <span class="o">=</span> <span class="s1">&#39;git&#39;</span>
+            <span class="c1"># git must use https protocol</span>
+            <span class="n">vcs_url</span> <span class="o">=</span> <span class="s1">&#39;https://</span><span class="si">{3}</span><span class="s1">:</span><span class="si">{3}</span><span class="s1">@</span><span class="si">{2}</span><span class="s1">/</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">.</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vcs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">vcs_username</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vcs_username</span> <span class="o">=</span> <span class="s1">&#39;anonsvn&#39;</span>
+            <span class="n">vcs_password</span> <span class="o">=</span> <span class="s1">&#39;anonsvn&#39;</span>
+            <span class="n">vcs</span> <span class="o">=</span> <span class="s1">&#39;subversion&#39;</span>
+            <span class="n">vcs_url</span> <span class="o">=</span> <span class="s1">&#39;https://</span><span class="si">{2}</span><span class="s1">/</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vcs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+
+        <span class="n">code_info_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">vcs</span><span class="o">=</span><span class="n">vcs</span><span class="p">,</span>
+            <span class="n">vcs_url</span><span class="o">=</span><span class="n">vcs_url</span><span class="p">,</span>
+            <span class="n">vcs_username</span><span class="o">=</span><span class="n">vcs_username</span><span class="p">,</span>
+            <span class="n">vcs_password</span><span class="o">=</span><span class="n">vcs_password</span>
+        <span class="p">))</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">CODE_INFO_FILE</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">code_info</span><span class="p">:</span>
+            <span class="n">code_info</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">code_info_json</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">code_info_json</span></div>
+
+<div class="viewcode-block" id="Nforge.wiki"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.wiki">[docs]</a>    <span class="k">def</span> <span class="nf">wiki</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">wiki_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">ISSUES_DIR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">SUB_DIRS</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">attach_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">wiki_path</span><span class="p">,</span> <span class="n">ISSUE_ATTACH_DIR</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">attach_file_path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">attach_file_path</span><span class="p">)</span>
+
+        <span class="n">project_news_item</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_main_soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;ul&#39;</span><span class="p">,</span> <span class="n">class_</span><span class="o">=</span><span class="s1">&#39;tab-small&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s1">&#39;ul&#39;</span><span class="p">)</span>
+        <span class="n">wiki_pages</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">a_tag</span> <span class="ow">in</span> <span class="n">project_news_item</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">):</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="n">a_tag</span><span class="p">[</span><span class="s1">&#39;href&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;?action=edit&#39;</span>
+            <span class="n">wiki_request</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+            <span class="n">doc_name</span> <span class="o">=</span> <span class="n">a_tag</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Except error for private wiki</span>
+            <span class="c1"># Private wiki cannot get text area tag</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">wiki_content</span> <span class="o">=</span> <span class="n">making_soup</span><span class="p">(</span><span class="n">wiki_request</span><span class="p">,</span> <span class="s1">&#39;html&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">textarea</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="n">wiki_request</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="n">a_tag</span><span class="p">[</span><span class="s1">&#39;href&#39;</span><span class="p">],</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+                <span class="n">wiki_content</span> <span class="o">=</span> <span class="n">making_soup</span><span class="p">(</span><span class="n">wiki_request</span><span class="p">,</span> <span class="s1">&#39;html&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;div&#39;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s1">&#39;mycontent&#39;</span><span class="p">)</span>
+
+            <span class="n">wiki_pages</span><span class="p">[</span><span class="n">doc_name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">wiki_content</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">wiki_path</span><span class="p">,</span> <span class="n">doc_name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.md&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">wiki_doc</span><span class="p">:</span>
+                <span class="n">wiki_doc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">wiki_content</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">wiki_pages</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Nforge.developers"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.developers">[docs]</a>    <span class="k">def</span> <span class="nf">developers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">class_name</span> <span class="o">=</span> <span class="s1">&#39;developer_info_list&#39;</span>
+        <span class="n">dev_info_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_main_soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;div&#39;</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)</span><span class="o">.</span><span class="n">ul</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;li&#39;</span><span class="p">)</span>
+
+        <span class="n">developers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;developers.txt&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">developer_file</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">li</span> <span class="ow">in</span> <span class="n">dev_info_list</span><span class="p">:</span>
+                <span class="n">developer_name</span> <span class="o">=</span> <span class="n">li</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">developers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">developer_name</span><span class="p">)</span>
+                <span class="n">developer_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">developer_name</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">developers</span></div>
+
+<div class="viewcode-block" id="Nforge.milestones"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.milestones">[docs]</a>    <span class="k">def</span> <span class="nf">milestones</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">milestone_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_url</span> <span class="o">+</span> <span class="s1">&#39;/milestone.xml&#39;</span>
+        <span class="n">milestone_xml</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">milestone_url</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+        <span class="n">xml_soup</span> <span class="o">=</span> <span class="n">making_soup</span><span class="p">(</span><span class="n">milestone_xml</span><span class="p">,</span> <span class="s1">&#39;xml&#39;</span><span class="p">)</span>
+        <span class="n">milestones_soup</span> <span class="o">=</span> <span class="n">xml_soup</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s1">&#39;milestone&#39;</span><span class="p">)</span>
+        <span class="n">milestones_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;milestones&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">milestones_path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">milestones_path</span><span class="p">)</span>
+
+        <span class="n">milestones</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">milestones_soup</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">milestone</span> <span class="ow">in</span> <span class="n">milestones_soup</span><span class="p">:</span>
+                <span class="n">ms</span> <span class="o">=</span> <span class="n">Milestone</span><span class="p">(</span><span class="n">milestone</span><span class="p">)</span>
+                <span class="n">ms_json</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
+                <span class="n">milestones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ms_json</span><span class="p">)</span>
+
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">milestones_path</span><span class="p">,</span> <span class="n">ms</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">ms_file</span><span class="p">:</span>
+                    <span class="n">ms_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ms_json</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">milestones</span></div>
+
+<div class="viewcode-block" id="Nforge.boards_xml"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.boards_xml">[docs]</a>    <span class="k">def</span> <span class="nf">boards_xml</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># issue, download</span>
+        <span class="k">for</span> <span class="n">board</span><span class="p">,</span> <span class="n">url</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">urls</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">is_download</span> <span class="o">=</span> <span class="n">board</span> <span class="o">==</span> <span class="s1">&#39;download&#39;</span>
+
+            <span class="n">get_board_request</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span>
+            <span class="n">parsed_board</span> <span class="o">=</span> <span class="n">making_soup</span><span class="p">(</span><span class="n">get_board_request</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="s1">&#39;xml&#39;</span><span class="p">)</span>
+            <span class="n">doc_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">id_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span> <span class="k">for</span> <span class="n">id_tag</span> <span class="ow">in</span> <span class="n">parsed_board</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID_TAGS</span><span class="p">[</span><span class="n">is_download</span><span class="p">])]</span>
+
+            <span class="n">progress_bar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">doc_ids</span><span class="p">)</span>
+
+            <span class="n">xml_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">is_download</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">SUB_DIRS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">board</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">is_download</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">xml_path</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_download</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">xml_path</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">doc_id</span> <span class="ow">in</span> <span class="n">progress_bar</span><span class="p">:</span>
+                <span class="n">progress_bar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="s1">&#39;Now making </span><span class="si">{0}</span><span class="s1">.xml and </span><span class="si">{0}</span><span class="s1">.json of </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">doc_id</span><span class="p">,</span> <span class="n">board</span><span class="p">))</span>
+
+                <span class="n">fn</span> <span class="o">=</span> <span class="n">doc_id</span> <span class="o">+</span> <span class="s1">&#39;.xml&#39;</span>
+
+                <span class="n">doc_req_url</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">/</span><span class="si">{2}</span><span class="s1">.xml&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_url</span><span class="p">,</span> <span class="n">board</span><span class="p">,</span> <span class="n">doc_id</span><span class="p">)</span>
+                <span class="n">doc_requests</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">doc_req_url</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">ok_code</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">doc_requests</span><span class="o">.</span><span class="n">status_code</span><span class="p">)):</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> HAS REQUEST ERROR </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">doc_id</span><span class="p">,</span> <span class="n">doc_requests</span><span class="o">.</span><span class="n">status_code</span><span class="p">))</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># Precaution of xml encoding error</span>
+                <span class="n">xml_bytes</span> <span class="o">=</span> <span class="n">doc_requests</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+                <span class="n">parsed_xml</span> <span class="o">=</span> <span class="n">xml_bytes</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;#13;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">xml_path</span><span class="p">,</span> <span class="n">fn</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">xml_file</span><span class="p">:</span>
+                    <span class="n">xml_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">parsed_xml</span><span class="p">)</span>
+
+                <span class="n">soup</span> <span class="o">=</span> <span class="n">making_soup</span><span class="p">(</span><span class="n">parsed_xml</span><span class="p">,</span> <span class="s1">&#39;xml&#39;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">is_download</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">make_issue</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">soup</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">make_download</span><span class="p">(</span><span class="n">doc_id</span><span class="p">,</span> <span class="n">soup</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Nforge.make_issue"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.make_issue">[docs]</a>    <span class="k">def</span> <span class="nf">make_issue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc_type</span><span class="p">,</span> <span class="n">issue</span><span class="p">):</span>
+        <span class="n">issue_id_tag</span> <span class="o">=</span> <span class="n">issue</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;artifact_id&#39;</span><span class="p">)</span>
+        <span class="n">author_tag</span> <span class="o">=</span> <span class="n">issue</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;author&#39;</span><span class="p">)</span>
+        <span class="n">assignee_tag</span> <span class="o">=</span> <span class="n">issue</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;assignee&#39;</span><span class="p">)</span>
+        <span class="n">title_tag</span> <span class="o">=</span> <span class="n">issue</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
+        <span class="n">body_tag</span> <span class="o">=</span> <span class="n">issue</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">)</span>
+        <span class="n">open_date_tag</span> <span class="o">=</span> <span class="n">issue</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;open_date&#39;</span><span class="p">)</span>
+        <span class="n">close_date_tag</span> <span class="o">=</span> <span class="n">issue</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;close_date&#39;</span><span class="p">)</span>
+        <span class="n">attachments_tag</span> <span class="o">=</span> <span class="n">issue</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;attachments&#39;</span><span class="p">)</span>
+
+        <span class="n">issue_id</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">issue_id_tag</span> <span class="k">else</span> <span class="n">issue_id_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="n">author</span> <span class="o">=</span> <span class="s1">&#39;No author&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">author_tag</span> <span class="k">else</span> <span class="n">author_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">assignee</span> <span class="o">=</span> <span class="s1">&#39;No assignee&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">assignee_tag</span> <span class="k">else</span> <span class="n">assignee_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;No title&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">title_tag</span> <span class="k">else</span> <span class="n">title_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="s1">&#39;No body&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">body_tag</span> <span class="k">else</span> <span class="n">body_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="n">open_date_str</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">open_date_tag</span> <span class="k">else</span> <span class="n">open_date_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="n">close_date</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">close_date_tag</span> <span class="k">else</span> <span class="n">close_date_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+
+        <span class="n">open_date</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">print_type</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">open_date_str</span><span class="p">)))</span>
+        <span class="n">create_date</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">github_type</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">open_date_str</span><span class="p">)))</span>
+        <span class="n">closed_date</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">github_type</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">close_date</span><span class="p">)))</span>
+
+        <span class="n">closed</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="n">close_date</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span> <span class="k">else</span> <span class="kc">True</span>
+
+        <span class="n">items</span> <span class="o">=</span> <span class="n">attachments_tag</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s1">&#39;item&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">attachments_tag</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">attachments_link</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attach_links</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">issue_id</span><span class="p">)</span>
+
+        <span class="n">comments</span> <span class="o">=</span> <span class="n">issue</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;comments&#39;</span><span class="p">)</span>
+
+        <span class="n">assignee_text</span> <span class="o">=</span> <span class="s1">&#39;and assigned to **</span><span class="si">{0}</span><span class="s1">**&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">assignee</span><span class="p">)</span> <span class="k">if</span> <span class="n">assignee</span> <span class="o">!=</span> <span class="s1">&#39;Nobody&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;This </span><span class="si">{0}</span><span class="s2"> created by **</span><span class="si">{1}</span><span class="s2">** </span><span class="si">{2}</span><span class="s2"> | </span><span class="si">{3}</span><span class="se">\n\n</span><span class="s2">------</span><span class="se">\n\n</span><span class="si">{4}{5}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">doc_type</span><span class="p">,</span>
+            <span class="n">author</span><span class="p">,</span>
+            <span class="n">assignee_text</span><span class="p">,</span>
+            <span class="n">open_date</span><span class="p">,</span>
+            <span class="n">body</span><span class="p">,</span>
+            <span class="n">attachments_link</span><span class="p">)</span>
+
+        <span class="n">comment_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_comments</span><span class="p">(</span><span class="n">comments</span><span class="p">)</span>
+
+        <span class="n">issue_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">issue</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+                    <span class="n">body</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+                    <span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">,</span>
+                    <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="n">doc_type</span><span class="p">],</span>
+                    <span class="n">created_at</span><span class="o">=</span><span class="n">create_date</span><span class="p">,</span>
+                    <span class="n">closed_at</span><span class="o">=</span><span class="n">closed_date</span>
+                <span class="p">),</span>
+                <span class="n">comments</span><span class="o">=</span><span class="n">comment_list</span>
+            <span class="p">))</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">issues_path</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">issue_id</span> <span class="o">+</span> <span class="s1">&#39;.json&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+            <span class="n">json_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">issue_json</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Nforge.make_download"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.make_download">[docs]</a>    <span class="k">def</span> <span class="nf">make_download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">release_id</span><span class="p">,</span> <span class="n">soup</span><span class="p">):</span>
+        <span class="n">raw_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">downloads_path</span><span class="p">,</span> <span class="s1">&#39;raw&#39;</span><span class="p">,</span> <span class="n">release_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">raw_file_path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">raw_file_path</span><span class="p">)</span>
+
+        <span class="n">name_tag</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+        <span class="n">desc_tag</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">)</span>
+        <span class="n">files_tag</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">)</span>
+
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;No title&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">name_tag</span> <span class="k">else</span> <span class="n">name_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+        <span class="n">desc</span> <span class="o">=</span> <span class="s1">&#39;No desc&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">desc_tag</span> <span class="k">else</span> <span class="n">desc_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+
+        <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_version</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">downloads_path</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">release_id</span> <span class="o">+</span> <span class="s1">&#39;.json&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+                <span class="n">tag_name</span><span class="o">=</span><span class="n">version</span><span class="p">,</span> <span class="n">target_commitish</span><span class="o">=</span><span class="s1">&#39;master&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">desc</span><span class="p">,</span> <span class="n">prerelease</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">draft</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">),</span> <span class="n">json_file</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">files_tag</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">release_file</span> <span class="ow">in</span> <span class="n">files_tag</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s1">&#39;file&#39;</span><span class="p">):</span>
+                <span class="n">file_id_tag</span> <span class="o">=</span> <span class="n">release_file</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+                <span class="n">file_name_tag</span> <span class="o">=</span> <span class="n">release_file</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+                <span class="n">fid</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">file_id_tag</span> <span class="k">else</span> <span class="n">file_id_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">file_name_tag</span><span class="p">:</span>
+                    <span class="n">fn</span> <span class="o">=</span> <span class="n">file_name_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">file_down_url</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">/frs/download.php/</span><span class="si">{1}</span><span class="s1">/</span><span class="si">{2}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">fid</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+                <span class="n">file_raw</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">file_down_url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">raw_file_path</span><span class="p">,</span> <span class="n">fn</span><span class="p">),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">raw_file</span><span class="p">:</span>
+                    <span class="n">raw_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_raw</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Nforge.attach_links"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.attach_links">[docs]</a>    <span class="k">def</span> <span class="nf">attach_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">content_id</span><span class="p">):</span>
+        <span class="n">attach_markdown</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="n">items</span> <span class="ow">and</span> <span class="n">content_id</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                <span class="c1"># Sometimes length of items is zero.</span>
+                <span class="k">if</span> <span class="n">items</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">attach_markdown</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">-----</span><span class="se">\n</span><span class="s1">### Attachments</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+                <span class="n">link_tag</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;link&#39;</span><span class="p">)</span>
+                <span class="n">id_tag</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">link_tag</span> <span class="ow">or</span> <span class="n">link_tag</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">link</span> <span class="o">=</span> <span class="n">link_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+
+                <span class="n">fn</span> <span class="o">=</span> <span class="n">link</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">ext</span> <span class="o">=</span> <span class="n">get_fn</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">fn_md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">fn</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span> <span class="o">+</span> <span class="n">ext</span>
+                <span class="n">fid</span> <span class="o">=</span> <span class="s1">&#39;No file id&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">id_tag</span> <span class="k">else</span> <span class="n">id_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+
+                <span class="c1"># Download files</span>
+                <span class="n">down_url</span> <span class="o">=</span> <span class="n">urljoin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">link</span><span class="p">)</span>
+                <span class="n">down_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attach_path</span><span class="p">,</span> <span class="n">content_id</span><span class="p">,</span> <span class="n">fid</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">down_path</span><span class="p">):</span>
+                    <span class="n">downloaded</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">down_url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cookies</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">down_path</span><span class="p">):</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">down_path</span><span class="p">)</span>
+
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">down_path</span><span class="p">,</span> <span class="n">fn_md5</span><span class="p">),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">downloaded</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+
+                <span class="n">file_path</span> <span class="o">=</span> <span class="s1">&#39;/</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">/</span><span class="si">{2}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content_id</span><span class="p">,</span> <span class="n">fid</span><span class="p">,</span> <span class="n">fn_md5</span><span class="p">)</span>
+                <span class="n">github_link</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">/wiki/attachFile&#39;</span> <span class="o">+</span> <span class="n">file_path</span>
+
+                <span class="n">mime_type</span> <span class="o">=</span> <span class="n">mimetypes</span><span class="o">.</span><span class="n">guess_type</span><span class="p">(</span><span class="n">fn</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">mime_type</span> <span class="ow">and</span> <span class="n">mime_type</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;image&#39;</span><span class="p">:</span>
+                    <span class="n">attach_markdown</span> <span class="o">+=</span> <span class="s1">&#39;* </span><span class="si">{0}</span><span class="se">\n\n\t</span><span class="s1">![</span><span class="si">{0}</span><span class="s1">](</span><span class="si">{1}</span><span class="s1">)</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">github_link</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">attach_markdown</span> <span class="o">+=</span> <span class="s1">&#39;* [</span><span class="si">{0}</span><span class="s1">](</span><span class="si">{1}</span><span class="s1">)</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">github_link</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">attach_markdown</span></div>
+
+<div class="viewcode-block" id="Nforge.make_comments"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.make_comments">[docs]</a>    <span class="k">def</span> <span class="nf">make_comments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comments</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">comments</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">comment</span> <span class="ow">in</span> <span class="n">comments</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;item&#39;</span><span class="p">):</span>
+                <span class="n">id_tag</span> <span class="o">=</span> <span class="n">comment</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+                <span class="n">description_tag</span> <span class="o">=</span> <span class="n">comment</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">)</span>
+                <span class="n">author_tag</span> <span class="o">=</span> <span class="n">comment</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;author&#39;</span><span class="p">)</span>
+                <span class="n">attachments_tag</span> <span class="o">=</span> <span class="n">comment</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;attachments&#39;</span><span class="p">)</span>
+                <span class="n">date_tag</span> <span class="o">=</span> <span class="n">comment</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;pubDate&#39;</span><span class="p">)</span>
+
+                <span class="n">id_</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">id_tag</span> <span class="k">else</span> <span class="n">id_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+                <span class="n">body</span> <span class="o">=</span> <span class="s1">&#39;No description&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">description_tag</span> <span class="k">else</span> <span class="n">description_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+                <span class="n">author</span> <span class="o">=</span> <span class="s1">&#39;No author&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">author_tag</span> <span class="k">else</span> <span class="n">author_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+                <span class="n">date</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">date_tag</span> <span class="k">else</span> <span class="n">date_tag</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+                <span class="n">items</span> <span class="o">=</span> <span class="n">attachments_tag</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s1">&#39;item&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">attachments_tag</span> <span class="k">else</span> <span class="kc">None</span>
+
+                <span class="n">print_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">print_type</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">date</span><span class="p">)))</span>
+                <span class="n">github_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">github_type</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">date</span><span class="p">)))</span>
+
+                <span class="n">attach_links</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attach_links</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">id_</span><span class="p">)</span>
+
+                <span class="n">c_body</span> <span class="o">=</span> <span class="s2">&quot;This comment created by **</span><span class="si">{0}</span><span class="s2">** | </span><span class="si">{1}</span><span class="se">\n\n</span><span class="s2">------</span><span class="se">\n\n</span><span class="si">{2}{3}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">author</span><span class="p">,</span> <span class="n">print_time</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span>
+                                                                                            <span class="n">attach_links</span><span class="p">)</span>
+
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">github_time</span><span class="p">,</span>
+                    <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="n">c_body</span>
+                <span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="Nforge.get_version"><a class="viewcode-back" href="../../migration.nforge.html#migration.nforge.Nforge.get_version">[docs]</a>    <span class="k">def</span> <span class="nf">get_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="n">title</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">result</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">temp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">open_project_migration 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Taehwan Kim.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.6.
+    </div>
+  </body>
+</html>

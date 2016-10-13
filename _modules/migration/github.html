@@ -1,0 +1,383 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>migration.github &#8212; open_project_migration 1.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="open_project_migration 1.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">open_project_migration 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for migration.github</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">mimetypes</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">github3</span>
+<span class="kn">import</span> <span class="nn">grequests</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">future.moves.urllib.parse</span> <span class="k">import</span> <span class="n">urlparse</span>
+<span class="kn">from</span> <span class="nn">github3.exceptions</span> <span class="k">import</span> <span class="n">GitHubError</span>
+<span class="kn">from</span> <span class="nn">migration</span> <span class="k">import</span> <span class="n">WAIT_TIME</span><span class="p">,</span> <span class="n">CODE_INFO_FILE</span><span class="p">,</span> <span class="n">ok_code</span><span class="p">,</span> <span class="n">ISSUES_DIR</span><span class="p">,</span> <span class="n">DOWNLOADS_DIR</span>
+<span class="kn">from</span> <span class="nn">requests.packages.urllib3.exceptions</span> <span class="k">import</span> <span class="n">InsecureRequestWarning</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="k">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span> <span class="nn">.helper</span> <span class="k">import</span> <span class="n">get_fn</span><span class="p">,</span> <span class="n">chunks</span>
+
+<span class="n">requests</span><span class="o">.</span><span class="n">packages</span><span class="o">.</span><span class="n">urllib3</span><span class="o">.</span><span class="n">disable_warnings</span><span class="p">(</span><span class="n">InsecureRequestWarning</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="exception_handler"><a class="viewcode-back" href="../../migration.github.html#migration.github.exception_handler">[docs]</a><span class="k">def</span> <span class="nf">exception_handler</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This function prints grequests exception</span>
+
+<span class="sd">    :param request: grequests&#39; object</span>
+<span class="sd">    :param exception: request&#39;s exception</span>
+<span class="sd">    :return: null</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">exception</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="InvalidTokenError"><a class="viewcode-back" href="../../migration.github.html#migration.github.InvalidTokenError">[docs]</a><span class="k">class</span> <span class="nc">InvalidTokenError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">token</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GitHubMigration"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration">[docs]</a><span class="k">class</span> <span class="nc">GitHubMigration</span><span class="p">:</span>
+    <span class="n">header_basis</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;authorization&#39;</span><span class="p">:</span> <span class="s2">&quot;token &quot;</span><span class="p">,</span>
+        <span class="s1">&#39;content-type&#39;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enterprise</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">,</span> <span class="n">project_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">provider</span> <span class="o">=</span> <span class="s1">&#39;oss.navercorp&#39;</span> <span class="k">if</span> <span class="n">enterprise</span> <span class="k">else</span> <span class="s1">&#39;github&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__url</span> <span class="o">=</span> <span class="s1">&#39;https://</span><span class="si">{0}</span><span class="s1">.com&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">provider</span><span class="p">)</span>
+        <span class="n">url_parsed</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__url</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__api_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__url</span> <span class="o">+</span> <span class="s1">&#39;/api/v3/&#39;</span> <span class="k">if</span> <span class="n">enterprise</span> \
+            <span class="k">else</span> <span class="n">url_parsed</span><span class="o">.</span><span class="n">scheme</span> <span class="o">+</span> <span class="s1">&#39;://api.</span><span class="si">{0}</span><span class="s1">/&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url_parsed</span><span class="o">.</span><span class="n">netloc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__token_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">_ACCESS_TOKEN&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">provider</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__enterprise</span> <span class="o">=</span> <span class="n">enterprise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__token</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;token&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__repo_name</span> <span class="o">=</span> <span class="n">repo_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__project_path</span> <span class="o">=</span> <span class="n">project_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__cur_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">curdir</span><span class="p">)</span>
+
+        <span class="c1"># if token passed by parameter write to file after confirming token</span>
+        <span class="c1"># else read file and confirming that token</span>
+        <span class="c1"># if token is invalid raise InvalidTokenError</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__token</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">confirm_token</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__token</span><span class="p">)</span>
+            <span class="c1"># After confirming token and writing file</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;w&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__token_file_path</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__token</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s1">&#39;Please input token: &#39;</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">confirm_token</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__token</span><span class="p">)</span>
+                <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;w&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;r&#39;</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token_file_path</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span> <span class="k">as</span> <span class="n">token_file</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;w&#39;</span><span class="p">:</span>
+                <span class="n">token_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__token</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">confirm_token</span><span class="p">(</span><span class="n">token_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__session</span> <span class="o">=</span> <span class="n">github3</span><span class="o">.</span><span class="n">GitHub</span><span class="p">(</span><span class="n">token</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__token</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">enterprise</span> \
+            <span class="k">else</span> <span class="n">github3</span><span class="o">.</span><span class="n">GitHubEnterprise</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__url</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__token</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__session</span><span class="o">.</span><span class="n">user</span><span class="p">()</span><span class="o">.</span><span class="n">login</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__repo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__session</span><span class="o">.</span><span class="n">repository</span><span class="p">(</span><span class="n">owner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__username</span><span class="p">,</span> <span class="n">repository</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__repo_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__repo</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__repo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__session</span><span class="o">.</span><span class="n">create_repo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">header_basis</span><span class="p">[</span><span class="s1">&#39;authorization&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">basic_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_basis</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">issue_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_basis</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">repo_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_basis</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">basic_header</span><span class="p">[</span><span class="s1">&#39;Accept&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;application/vnd.github.v3+json&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">issue_header</span><span class="p">[</span><span class="s1">&#39;Accept&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;application/vnd.github.golden-comet-preview&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">repo_header</span><span class="p">[</span><span class="s1">&#39;Accept&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;application/vnd.github.barred-rock-preview&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">basis_repo_url</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">repos/</span><span class="si">{1}</span><span class="s1">/</span><span class="si">{2}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">import_repo_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis_repo_url</span> <span class="o">+</span> <span class="s1">&#39;/import&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">import_issue_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_repo_url</span> <span class="o">+</span> <span class="s1">&#39;/issues&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">issues</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_issue_json</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">downloads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_downloads</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GitHubMigration.confirm_token"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration.confirm_token">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
+        <span class="c1"># get rid special characters of token</span>
+        <span class="n">formatted_token</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">token</span> <span class="k">if</span> <span class="n">_</span><span class="o">.</span><span class="n">isalnum</span><span class="p">())</span>
+        <span class="n">confirm_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__api_url</span> <span class="o">+</span> <span class="s1">&#39;user?access_token=&#39;</span> <span class="o">+</span> <span class="n">formatted_token</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">confirm_url</span><span class="p">)</span><span class="o">.</span><span class="n">status_code</span> <span class="ow">is</span> <span class="mi">200</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidTokenError</span><span class="p">(</span><span class="n">formatted_token</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">formatted_token</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">token</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__token</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">token_file_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__token_file_path</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">enterprise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__enterprise</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__url</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">api_url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__api_url</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">session</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__session</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">repo_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__repo_name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__username</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">repo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__repo</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">project_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_path</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cur_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__cur_dir</span>
+
+<div class="viewcode-block" id="GitHubMigration.read_issue_json"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration.read_issue_json">[docs]</a>    <span class="k">def</span> <span class="nf">read_issue_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_path</span><span class="p">,</span> <span class="n">ISSUES_DIR</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="s1">&#39;*.json&#39;</span><span class="p">)</span>
+        <span class="n">json_list</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">json_list</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_text</span><span class="p">:</span>
+                <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">json_text</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="o">+</span><span class="s1">&#39;/&#39;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="o">+</span><span class="s1">&#39;/&#39;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_name</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">files</span></div>
+
+<div class="viewcode-block" id="GitHubMigration.read_downloads"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration.read_downloads">[docs]</a>    <span class="k">def</span> <span class="nf">read_downloads</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">downloads_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_path</span><span class="p">,</span> <span class="n">DOWNLOADS_DIR</span><span class="p">)</span>
+        <span class="n">json_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">downloads_path</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="s1">&#39;*.json&#39;</span><span class="p">)</span>
+        <span class="n">raw_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">downloads_path</span><span class="p">,</span> <span class="s1">&#39;raw&#39;</span><span class="p">)</span>
+
+        <span class="n">downloads</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">json_path</span><span class="p">):</span>
+            <span class="n">download_id</span> <span class="o">=</span> <span class="n">get_fn</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">downloads</span><span class="p">[</span><span class="n">download_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_text</span><span class="p">:</span>
+                <span class="n">downloads</span><span class="p">[</span><span class="n">download_id</span><span class="p">][</span><span class="s1">&#39;json&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json_text</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+        <span class="k">for</span> <span class="n">download_id</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">raw_path</span><span class="p">):</span>
+            <span class="n">downloads</span><span class="p">[</span><span class="n">download_id</span><span class="p">][</span><span class="s1">&#39;raw&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">raw_path</span><span class="p">,</span> <span class="n">download_id</span><span class="p">,</span> <span class="s1">&#39;*.*&#39;</span><span class="p">)):</span>
+                <span class="n">file_name</span> <span class="o">=</span> <span class="n">get_fn</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+                <span class="n">ext</span> <span class="o">=</span> <span class="n">get_fn</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">content_type</span> <span class="o">=</span> <span class="n">mimetypes</span><span class="o">.</span><span class="n">types_map</span><span class="p">[</span><span class="n">ext</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="n">content_type</span> <span class="o">=</span> <span class="s1">&#39;multipart/form-data&#39;</span>
+
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">raw_file</span><span class="p">:</span>
+                    <span class="n">downloads</span><span class="p">[</span><span class="n">download_id</span><span class="p">][</span><span class="s1">&#39;raw&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">file_name</span><span class="p">,</span>
+                        <span class="n">raw</span><span class="o">=</span><span class="n">raw_file</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
+                        <span class="n">content_type</span><span class="o">=</span><span class="n">content_type</span>
+                    <span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">downloads</span></div>
+
+<div class="viewcode-block" id="GitHubMigration.issues_migration_parallel"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration.issues_migration_parallel">[docs]</a>    <span class="k">def</span> <span class="nf">issues_migration_parallel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">issue_split</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chunks</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">issues</span><span class="p">,</span> <span class="mi">30</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">issues</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">issue_split</span><span class="p">):</span>
+            <span class="n">irs</span> <span class="o">=</span> <span class="p">(</span><span class="n">grequests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">import_issue_url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">issue</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">issue_header</span><span class="p">)</span> <span class="k">for</span> <span class="n">issue</span> <span class="ow">in</span> <span class="n">issues</span><span class="p">)</span>
+            <span class="n">import_issues</span> <span class="o">=</span> <span class="n">grequests</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">irs</span><span class="p">,</span> <span class="n">exception_handler</span><span class="o">=</span><span class="n">exception_handler</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">import_issues</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">ok_code</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="p">)):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+                    <span class="k">continue</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">upload_issue_attach</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="GitHubMigration.issues_migration"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration.issues_migration">[docs]</a>    <span class="k">def</span> <span class="nf">issues_migration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">issue</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">issues</span><span class="p">):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">import_issue_url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">issue</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">issue_header</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ok_code</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">)):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">upload_issue_attach</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="GitHubMigration.upload_issue_attach"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration.upload_issue_attach">[docs]</a>    <span class="k">def</span> <span class="nf">upload_issue_attach</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">github</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">netloc</span>
+        <span class="n">push_wiki_git</span> <span class="o">=</span> <span class="s1">&#39;https://</span><span class="si">{0}</span><span class="s1">:</span><span class="si">{1}</span><span class="s1">@</span><span class="si">{3}</span><span class="s1">/</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{2}</span><span class="s1">.wiki.git&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_name</span><span class="p">,</span> <span class="n">github</span><span class="p">)</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_path</span><span class="p">,</span> <span class="n">ISSUES_DIR</span><span class="p">,</span> <span class="s1">&#39;raw&#39;</span><span class="p">))</span>
+
+        <span class="n">git_commands</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="s1">&#39;git&#39;</span><span class="p">,</span> <span class="s1">&#39;init&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;git&#39;</span><span class="p">,</span> <span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="s1">&#39;--all&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;git&#39;</span><span class="p">,</span> <span class="s1">&#39;commit&#39;</span><span class="p">,</span> <span class="s1">&#39;-m&#39;</span><span class="p">,</span> <span class="s1">&#39;all asset commit&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;git&#39;</span><span class="p">,</span> <span class="s1">&#39;remote&#39;</span><span class="p">,</span> <span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="s1">&#39;origin&#39;</span><span class="p">,</span> <span class="n">push_wiki_git</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;git&#39;</span><span class="p">,</span> <span class="s1">&#39;pull&#39;</span><span class="p">,</span> <span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="n">push_wiki_git</span><span class="p">,</span> <span class="s1">&#39;master&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;git&#39;</span><span class="p">,</span> <span class="s1">&#39;push&#39;</span><span class="p">,</span> <span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="n">push_wiki_git</span><span class="p">,</span> <span class="s1">&#39;master&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">git_commands</span><span class="p">:</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cur_dir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GitHubMigration.repo_migration"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration.repo_migration">[docs]</a>    <span class="k">def</span> <span class="nf">repo_migration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_path</span><span class="p">,</span> <span class="n">CODE_INFO_FILE</span><span class="p">))</span> <span class="k">as</span> <span class="n">code_info</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;PUT&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_repo_url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">code_info</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
+                                 <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_header</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">ok_code</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">))</span> <span class="k">else</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="GitHubMigration.check_repo_migration"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration.check_repo_migration">[docs]</a>    <span class="k">def</span> <span class="nf">check_repo_migration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">import_confirm</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_repo_url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_header</span><span class="p">)</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="n">import_confirm</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;complete&#39;</span> <span class="k">else</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="GitHubMigration.downloads_migration"><a class="viewcode-back" href="../../migration.github.html#migration.github.GitHubMigration.downloads_migration">[docs]</a>    <span class="k">def</span> <span class="nf">downloads_migration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_repo_migration</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Checking repository migration status every </span><span class="si">%d</span><span class="s1"> seconds.&#39;</span> <span class="o">%</span> <span class="n">WAIT_TIME</span><span class="p">)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">WAIT_TIME</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">download_dict</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">downloads</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">description</span> <span class="o">=</span> <span class="n">download_dict</span><span class="p">[</span><span class="s1">&#39;json&#39;</span><span class="p">]</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="n">download_dict</span><span class="p">[</span><span class="s1">&#39;raw&#39;</span><span class="p">]</span>
+
+            <span class="n">tag_name</span> <span class="o">=</span> <span class="n">description</span><span class="p">[</span><span class="s1">&#39;tag_name&#39;</span><span class="p">]</span>
+            <span class="n">target_commitish</span> <span class="o">=</span> <span class="n">description</span><span class="p">[</span><span class="s1">&#39;target_commitish&#39;</span><span class="p">]</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">description</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="n">description</span><span class="p">[</span><span class="s1">&#39;body&#39;</span><span class="p">]</span>
+            <span class="n">draft</span> <span class="o">=</span> <span class="n">description</span><span class="p">[</span><span class="s1">&#39;draft&#39;</span><span class="p">]</span>
+            <span class="n">prerelease</span> <span class="o">=</span> <span class="n">description</span><span class="p">[</span><span class="s1">&#39;prerelease&#39;</span><span class="p">]</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">release</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo</span><span class="o">.</span><span class="n">create_release</span><span class="p">(</span><span class="n">tag_name</span><span class="p">,</span> <span class="n">target_commitish</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">draft</span><span class="p">,</span> <span class="n">prerelease</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                    <span class="n">release</span><span class="o">.</span><span class="n">upload_asset</span><span class="p">(</span><span class="s1">&#39;multipart/form-data&#39;</span><span class="p">,</span> <span class="n">file</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">file</span><span class="p">[</span><span class="s1">&#39;raw&#39;</span><span class="p">])</span>
+
+            <span class="k">except</span> <span class="n">GitHubError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">open_project_migration 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Taehwan Kim.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.6.
+    </div>
+  </body>
+</html>

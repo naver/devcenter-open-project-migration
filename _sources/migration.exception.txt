@@ -1,0 +1,7 @@
+migration.exception module
+==========================
+
+.. automodule:: migration.exception
+    :members:
+    :undoc-members:
+    :show-inheritance:

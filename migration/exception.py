@@ -13,7 +13,7 @@ class InvalidCookieError(Exception):
         self.cookies = cookies
 
     def __str__(self):
-        msg = 'Please make valid cookies to data/COOKIES'.format(self.cookies)
+        msg = 'Please make valid cookies to cookies.txt'.format(self.cookies)
         return msg
 
 

@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='nforge_migration',
-    version='1.0.2-alpha.1',
+    version='1.0.2',
     description='Migrate nForge project to GitHub',
     author='Taehwan Kim',
     author_email='maxtortime@navercorp.com',
@@ -33,7 +33,8 @@ setup(
         'requests',
         'requests-toolbelt',
         'grequests',
-        'future'
+        'future',
+        'pytest'
     ],
     entry_points='''
         [console_scripts]

@@ -92,9 +92,9 @@ class GitHubMigration:
             else:
                 mode = 'r'
 
-        with open(self.token_file_name, mode) as token_file:
+        with open(self.token_file_name, mode, encoding='utf-8') as token_file:
             if mode == 'w':
-                token_file.write(self.__token)
+                token_file.write(str(self.__token))
             else:
                 self.__token = self.confirm_token(token_file.read())
 
@@ -281,7 +281,7 @@ class GitHubMigration:
 
     def downloads_migration(self):
         print('Begin download migration...')
-        assert(self.repo.commit, '[ERROR} First, import your repository...')
+        assert(self.repo.commit is not None, '[ERROR} First, import your repository...')
 
         for download_dict in tqdm(self.downloads.values()):
             description = ast.literal_eval(download_dict['json'])

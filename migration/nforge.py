@@ -223,7 +223,7 @@ class Nforge:
 
             wiki_pages[doc_name] = str(wiki_content)
 
-            with open(os.path.join(wiki_path, doc_name) + '.md', 'w') as wiki_doc:
+            with open(os.path.join(wiki_path, doc_name) + '.md', 'w', encoding='utf-8') as wiki_doc:
                 wiki_doc.write(str(wiki_content))
 
         return wiki_pages

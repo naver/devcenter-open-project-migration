@@ -15,6 +15,7 @@
    limitations under the License.
 """
 import ast
+import collections
 import glob
 import json
 import mimetypes
@@ -206,16 +207,16 @@ class GitHubMigration:
         downloads = dict()
 
         for file_path in glob.glob(json_path):
-            download_id = get_fn(file_path, 0)
+            download_id = int(get_fn(file_path, 0))
             downloads[download_id] = dict()
 
             with open(file_path) as json_text:
                 downloads[download_id]['json'] = json.loads(json_text.read())
 
         for download_id in os.listdir(raw_path):
-            downloads[download_id]['raw'] = list()
+            downloads[int(download_id)]['raw'] = list()
 
-            for file_path in glob.glob(os.path.join(raw_path, download_id, '*.*')):
+            for file_path in glob.glob(os.path.join(raw_path, str(download_id), '*.*')):
                 file_name = get_fn(file_path)
                 ext = get_fn(file_path, 1)
 
@@ -225,13 +226,13 @@ class GitHubMigration:
                     content_type = 'multipart/form-data'
 
                 with open(file_path, 'rb') as raw_file:
-                    downloads[download_id]['raw'].append(dict(
+                    downloads[int(download_id)]['raw'].append(dict(
                         name=file_name,
                         raw=raw_file.read(),
                         content_type=content_type
                     ))
 
-        return downloads
+        return collections.OrderedDict(sorted(downloads.items()))
 
     def issues_migration_parallel(self):
         issue_split = list(chunks(self.issues, 30))
@@ -294,13 +295,13 @@ class GitHubMigration:
         return True if status == 'complete' else False
 
     def downloads_migration(self):
-        for download_dict in tqdm(self.downloads.values()):
+        for download_id, download_dict in tqdm(self.downloads.items()):
             description = ast.literal_eval(download_dict['json'])
             files = download_dict['raw']
 
             assert(type(description) is dict)
-
-            tag_name = description['tag_name']
+            # Order by download_id-tag_name ...
+            tag_name = str(download_id) + '-' + description['tag_name']
             target_commitish = description['target_commitish']
             name = description['name']
             body = description['body']

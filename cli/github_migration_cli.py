@@ -48,7 +48,7 @@ def github_migration_cli(dev_code, enterprise, name, token, project_name, org_na
     except InvalidTokenError as e:
         click.echo(click.style(e.token + ' is a invalid token!!', fg='red'))
         exit(-1)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         click.echo(click.style('Please input valid project name (You inputted "{0}")'.format(project_name), fg='red'))
     else:
         click.echo(ghm.token + click.style(' is valid token', fg='blue'))

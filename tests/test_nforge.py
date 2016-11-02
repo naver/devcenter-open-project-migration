@@ -47,15 +47,6 @@ class TestNforge(unittest.TestCase):
             wiki_doc = wiki[name]
             self.assertEqual(hashlib.sha1(wiki_doc.encode('utf-8')).hexdigest(), doc)
 
-    def test_no_src(self):
-        # make data/COOKIES before running this test
-        with self.assertRaises(NoSrcError):
-            # No cookie
-            Nforge(project_name='hyeunit', dev_code=False, private=False)
-            Nforge(project_name='hyeunit', dev_code=False, private=True)
-            Nforge(project_name='setupbox', dev_code=False, private=False)
-
-        self.assertIsNotNone(Nforge(project_name='setupbox', dev_code=False, private=True))
 
 if __name__ == '__main__':
     unittest.main()

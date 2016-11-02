@@ -20,14 +20,14 @@ import json
 import mimetypes
 import os
 import subprocess
+from builtins import open, input, str
 
 import github3
 import grequests
 import requests
-from builtins import open, input, str
 from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
-from migration import CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR, fail_code
+from migration import CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from tqdm import tqdm
 
@@ -73,6 +73,7 @@ class GitHubMigration:
 
         self.__enterprise = enterprise
         self.__token = kwargs.get('token')
+        self.__org_name = kwargs.get('org_name')
         self.__repo_name = repo_name
         self.__project_path = project_path
         self.__cur_dir = os.path.abspath(os.curdir)
@@ -102,10 +103,17 @@ class GitHubMigration:
             else github3.GitHubEnterprise(self.__url, token=self.__token)
 
         self.__username = self.__session.user().login
-        self.__repo = self.__session.repository(owner=self.__username, repository=self.__repo_name)
+
+        self.owner_name = self.__org_name if self.__org_name else self.__username
+        self.__repo = self.__session.repository(owner=self.owner_name, repository=self.__repo_name)
 
         if not self.__repo:
-            self.__repo = self.__session.create_repo(self.repo_name)
+            if not self.__org_name:
+                self.__repo = self.__session.create_repo(self.__repo_name)
+            else:
+                org = self.__session.organization(login=self.__org_name)
+                self.__repo = org.create_repo(self.__repo_name)
+                self.__repo_name = self.__repo.name
 
         self.header_basis['authorization'] += self.token
 
@@ -117,7 +125,7 @@ class GitHubMigration:
         self.issue_header['Accept'] = 'application/vnd.github.golden-comet-preview'
         self.repo_header['Accept'] = 'application/vnd.github.barred-rock-preview'
 
-        self.basis_repo_url = '{0}repos/{1}/{2}'.format(self.api_url, self.username, self.repo_name)
+        self.basis_repo_url = '{0}repos/{1}/{2}'.format(self.api_url, self.owner_name, self.repo_name)
         self.import_repo_url = self.basis_repo_url + '/import'
         self.import_issue_url = self.import_repo_url + '/issues'
 
@@ -174,6 +182,10 @@ class GitHubMigration:
     def cur_dir(self):
         return self.__cur_dir
 
+    @property
+    def org_name(self):
+        return self.__org_name
+
     def read_issue_json(self):
         files = []
 
@@ -182,7 +194,7 @@ class GitHubMigration:
 
         for fn in json_list:
             with open(fn) as json_text:
-                files.append(json_text.read().replace('{0}', self.url+'/'+self.username+'/'+self.repo_name))
+                files.append(json_text.read().replace('{0}', self.url+'/'+self.owner_name+'/'+self.repo_name))
 
         return files
 
@@ -242,13 +254,15 @@ class GitHubMigration:
 
             if not ok_code.match(str(r.status_code)):
                 print(r.text)
+                return False
 
         self.upload_issue_attach()
         return True
 
     def upload_issue_attach(self):
         github = urlparse(self.url).netloc
-        push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(self.username, self.token, self.repo_name, github)
+        push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(self.owner_name, self.token,
+                                                                      self.repo_name, github)
 
         os.chdir(os.path.join(self.project_path, ISSUES_DIR, 'raw'))
 
@@ -280,9 +294,6 @@ class GitHubMigration:
         return True if status == 'complete' else False
 
     def downloads_migration(self):
-        print('Begin download migration...')
-        assert(self.repo.commit is not None, '[ERROR} First, import your repository...')
-
         for download_dict in tqdm(self.downloads.values()):
             description = ast.literal_eval(download_dict['json'])
             files = download_dict['raw']

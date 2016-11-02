@@ -31,7 +31,9 @@ def nforge_parser_cli(name, dev_code, private):
     project_name = name
     project = Nforge(project_name, dev_code, private)
     project.developers()
-    project.code_info()
+
+    if not dev_code:
+        project.code_info()
     project.wiki()
     project.milestones()
     project.boards_xml()

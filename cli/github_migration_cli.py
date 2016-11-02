@@ -25,9 +25,10 @@ from migration.github import GitHubMigration, InvalidTokenError
 @click.option('--token', help='토큰 직접 입력')
 @click.option('--project_name', prompt=True, help='오픈프로젝트 이름')
 @click.option('--name', prompt=True, help='GitHub 저장소 이름')
+@click.option('--org_name',  help='GitHub organization 이름')
 @click.option('--enterprise', help='GitHub 엔터프라이즈 저장소 여부', is_flag=False, default=False)
 @click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True, prompt=False, default=False)
-def github_migration_cli(dev_code, enterprise, name, token, project_name):
+def github_migration_cli(dev_code, enterprise, name, token, project_name, org_name):
     """ GitHub migration management """
 
     repo_name = name
@@ -39,30 +40,25 @@ def github_migration_cli(dev_code, enterprise, name, token, project_name):
     nforge_type = 'open_project' if not dev_code else 'dev_code'
     nforge_path = os.path.join(os.path.join(DIRS[2], nforge_type))
 
+    project_path = os.path.join(nforge_path, project_name)
+
     try:
-        output_dirs = os.listdir(nforge_path)
-    except EnvironmentError:
-        click.echo('Please parse at lease one %s ...' % nforge_type)
+        ghm = GitHubMigration(token=token, enterprise=enterprise, repo_name=repo_name,
+                              project_path=project_path, org_name=org_name)
+    except InvalidTokenError as e:
+        click.echo(click.style(e.token + ' is a invalid token!!', fg='red'))
         exit(-1)
+    except FileNotFoundError as e:
+        click.echo(click.style('Please input valid project name (You inputted "{0}")'.format(project_name), fg='red'))
     else:
-        assert(project_name in output_dirs, 'Please input correct {0} name'.format(nforge_type))
-        project_path = os.path.join(nforge_path, project_name)
+        click.echo(ghm.token + click.style(' is valid token', fg='blue'))
 
-        try:
-            ghm = GitHubMigration(token=token, enterprise=enterprise, repo_name=repo_name,
-                                  project_path=project_path)
-        except InvalidTokenError as e:
-            click.echo(click.style(e.token + ' is a invalid token!!', fg='red'))
-            exit(-1)
-        else:
-            click.echo(ghm.token + click.style(' is valid token', fg='blue'))
+        if not ghm.issues_migration():
+            click.echo('Issue and board migration has failed')
 
-            if not ghm.issues_migration():
-                click.echo('Issue and board migration has failed')
-
-            if not enterprise:
-                if not ghm.downloads_migration():
-                    click.echo('Download migration has failed.')
+        if not enterprise:
+            if not ghm.downloads_migration():
+                click.echo('Download migration has failed.')
 
 if __name__ == '__main__':
     github_migration_cli()

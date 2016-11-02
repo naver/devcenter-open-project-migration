@@ -121,13 +121,14 @@ class Nforge:
         src_soup = making_soup(src_request.content, 'html')
         src_title = src_soup.find('title').get_text()
 
-        # if cannot find all related div tags, it raises NoSrcError
-        if src_soup.find('div', class_='code_contents'):
-            self.vcs = 'svn'
-        elif '로그인' in src_title or '오류' in src_title:
-            raise NoSrcError
-        else:
-            self.vcs = 'git'
+        if not dev_code:
+            # if cannot find all related div tags, it raises NoSrcError
+            if src_soup.find('div', class_='code_contents'):
+                self.vcs = 'svn'
+            elif '로그인' in src_title or '오류' in src_title:
+                raise NoSrcError
+            else:
+                self.vcs = 'git'
 
         self.urls = self.create_url()
 

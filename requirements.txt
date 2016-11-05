@@ -1,6 +1,6 @@
 beautifulsoup4==4.5.1
 click==6.6
-future==0.15.2
+future==0.16.0
 gevent==1.1.2
 github3.py==0.9.6
 grequests==0.3.0

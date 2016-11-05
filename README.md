@@ -1,10 +1,10 @@
 # nforge-migration
 
 [![Build Status](https://travis-ci.org/naver/devcenter-open-project-migration.svg?branch=master)](https://travis-ci.org/naver/devcenter-open-project-migration)
-[![PyPI](https://img.shields.io/pypi/dm/nforge-migration.svg)]()
-[![PyPI](https://img.shields.io/pypi/v/nforge-migration.svg)]()
-[![PyPI](https://img.shields.io/pypi/l/nforge-migration.svg)]()
-[![PyPI](https://img.shields.io/pypi/pyversions/nforge-migration.svg)]()
+[![PyPI](https://img.shields.io/pypi/dm/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
+[![PyPI](https://img.shields.io/pypi/v/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
+[![PyPI](https://img.shields.io/pypi/l/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
+[![PyPI](https://img.shields.io/pypi/pyversions/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
 
 네이버 개발자센터 오픈 프로젝트 백업 및 마이그레이션을 위한 Python 모듈입니다. 본 모듈은 [네이버 개발자센터의 오픈 프로젝트](http://dev.naver.com/projects) 의 마이그레이션을 위해 2가지 기능을 제공합니다.
 1. 네이버 오픈프로젝트 백업: 로컬PC에 개인의 오픈 프로젝트 데이터 (이슈/게시판/첨부 파일 포함)를 백업
@@ -196,7 +196,7 @@ Now making 98483.xml and 98483.json of forum: 100%|███| 11/11 [00:02<00:00
 - 본인의 계정에 바로 마이그레이션 하는 경우
   - `ghm --name GitHub저장소이름 --project_name 오픈프로젝트이름`
 - 특정 Organization의 저장소에 마이그레이션 하는 경우
-  - `ghm -name GitHub저장소이름 --project_name 오픈프로젝트 이름 --org_name Organization이름` 
+  - `ghm -name GitHub저장소이름 --project_name 오픈프로젝트 이름 --org_name Organization이름`
 - `오픈프로젝트이름` 은 위에서 다운로드한 오픈 프로젝트 이름과 일치해야 합니다.
 - `GitHub저장소이름` 은 위에서 만드신 저장소 이름과 일치해야 합니다.
 

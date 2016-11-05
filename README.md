@@ -1,5 +1,12 @@
-# 네이버 개발자센터 오픈 프로젝트 백업 및 마이그레이션을 위한 Python 모듈  
-본 모듈은 [네이버 개발자센터의 오픈 프로젝트](http://dev.naver.com/projects) 의 마이그레이션을 위해 2가지 기능을 제공합니다.
+# nforge-migration
+
+[![Build Status](https://travis-ci.org/naver/devcenter-open-project-migration.svg?branch=master)](https://travis-ci.org/naver/devcenter-open-project-migration)
+[![PyPI](https://img.shields.io/pypi/dm/nforge-migration.svg)]()
+[![PyPI](https://img.shields.io/pypi/v/nforge-migration.svg)]()
+[![PyPI](https://img.shields.io/pypi/l/nforge-migration.svg)]()
+[![PyPI](https://img.shields.io/pypi/pyversions/nforge-migration.svg)]()
+
+네이버 개발자센터 오픈 프로젝트 백업 및 마이그레이션을 위한 Python 모듈입니다. 본 모듈은 [네이버 개발자센터의 오픈 프로젝트](http://dev.naver.com/projects) 의 마이그레이션을 위해 2가지 기능을 제공합니다.
 1. 네이버 오픈프로젝트 백업: 로컬PC에 개인의 오픈 프로젝트 데이터 (이슈/게시판/첨부 파일 포함)를 백업
 2. Github로 마이그레이션: 로컬PC에 백업한 데이터를 GitHub의 프로젝트로 마이그레이션
 
@@ -15,7 +22,7 @@
 위 3가지 프로그램이 없을 경우는 아래의 가이드를 따라 설치해주시길 바랍니다.
 
 ### Python 설치
-  * [Windows에서 Python 설치법](https://wikidocs.net/8)
+  * [Windows에서 Python 설치법](https://wikidocs.net/8) (**"Add Python 3.5 to PATH"** 설치시 반드시 이 옵션을 체크하세요)
   * Mac, Linux: 기본적으로 Python이 제공됩니다.
 
     > python --version (버전 확인 방법)
@@ -37,10 +44,12 @@
 
 ### pip 설치
 #### Windows
-위의 설치법을 따라하셨다면 pip가 자동으로 설치되있을 것입니다. 그러나 `pip --version` 을 실행하셨을 때 오류가 발생하신다면 아래 과정을 따라해주세요.
+- 위의 설치법을 따라하셨다면 pip가 자동으로 설치되있을 것입니다. 그러나 `pip --version` 을 실행하셨을 때 오류가 발생하신다면 아래 과정을 따라해주세요.
   1. https://bootstrap.pypa.io/get-pip.py 파일을 다운로드하세요.
   2. `$ python get-pip.py`
   3. pip 설치 버전 확인: `$ pip --version`
+
+- 간혹 위 과정을 따라하셨는데도 `pip`를 실행할 수 없는 경우는 시스템 속성의 환경변수 편집하는 곳에서 시스템 변수의 `PATH`에 파이썬 설치 경로를 추가해주세요.
 
 #### Linux/Mac OS
   1. pip 설치 스크립트 다운로드: `$ curl https://bootstrap.pypa.io/get-pip.py > get-pip.py`
@@ -184,7 +193,10 @@ Now making 98483.xml and 98483.json of forum: 100%|███| 11/11 [00:02<00:00
 5. 작업 폴더에 `token.txt` 라는 파일을 만들고 복사한 토큰을 넣어준 후 저장한다.
 
 #### 마이그레이션 명령어 수행
-- `ghm --name GitHub저장소이름 --project_name 오픈프로젝트이름`
+- 본인의 계정에 바로 마이그레이션 하는 경우
+  - `ghm --name GitHub저장소이름 --project_name 오픈프로젝트이름`
+- 특정 Organization의 저장소에 마이그레이션 하는 경우
+  - `ghm -name GitHub저장소이름 --project_name 오픈프로젝트 이름 --org_name Organization이름` 
 - `오픈프로젝트이름` 은 위에서 다운로드한 오픈 프로젝트 이름과 일치해야 합니다.
 - `GitHub저장소이름` 은 위에서 만드신 저장소 이름과 일치해야 합니다.
 

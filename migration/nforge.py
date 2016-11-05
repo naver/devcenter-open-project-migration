@@ -121,13 +121,14 @@ class Nforge:
         src_soup = making_soup(src_request.content, 'html')
         src_title = src_soup.find('title').get_text()
 
-        # if cannot find all related div tags, it raises NoSrcError
-        if src_soup.find('div', class_='code_contents'):
-            self.vcs = 'svn'
-        elif '로그인' in src_title or '오류' in src_title:
-            raise NoSrcError
-        else:
-            self.vcs = 'git'
+        if not dev_code:
+            # if cannot find all related div tags, it raises NoSrcError
+            if src_soup.find('div', class_='code_contents'):
+                self.vcs = 'svn'
+            elif '로그인' in src_title or '오류' in src_title:
+                raise NoSrcError
+            else:
+                self.vcs = 'git'
 
         self.urls = self.create_url()
 
@@ -223,7 +224,7 @@ class Nforge:
 
             wiki_pages[doc_name] = str(wiki_content)
 
-            with open(os.path.join(wiki_path, doc_name) + '.md', 'w') as wiki_doc:
+            with open(os.path.join(wiki_path, doc_name) + '.md', 'w', encoding='utf-8') as wiki_doc:
                 wiki_doc.write(str(wiki_content))
 
         return wiki_pages

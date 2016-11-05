@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
    Copyright 2016 NAVER Corp.
 
@@ -13,6 +14,17 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from migration import set_encoding
+import unittest
 
-set_encoding()
+from migration.github import GitHubMigration
+
+
+class TestGitHub(unittest.TestCase):
+    # Should add more tests...
+
+    def testInvalidPath(self):
+        with self.assertRaises(Exception):
+            GitHubMigration(token='', enterprise=False, project_path='', repo_name='test')
+
+if __name__ == '__main__':
+    unittest.main()

@@ -15,19 +15,20 @@
    limitations under the License.
 """
 import ast
+import collections
 import glob
 import json
 import mimetypes
 import os
 import subprocess
+from builtins import open, input, str
 
 import github3
 import grequests
 import requests
-from builtins import open, input, str
 from future.moves.urllib.parse import urlparse
 from github3.exceptions import GitHubError
-from migration import CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR, fail_code
+from migration import CODE_INFO_FILE, ok_code, ISSUES_DIR, DOWNLOADS_DIR
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from tqdm import tqdm
 
@@ -73,6 +74,7 @@ class GitHubMigration:
 
         self.__enterprise = enterprise
         self.__token = kwargs.get('token')
+        self.__org_name = kwargs.get('org_name')
         self.__repo_name = repo_name
         self.__project_path = project_path
         self.__cur_dir = os.path.abspath(os.curdir)
@@ -92,9 +94,9 @@ class GitHubMigration:
             else:
                 mode = 'r'
 
-        with open(self.token_file_name, mode) as token_file:
+        with open(self.token_file_name, mode, encoding='utf-8') as token_file:
             if mode == 'w':
-                token_file.write(self.__token)
+                token_file.write(str(self.__token))
             else:
                 self.__token = self.confirm_token(token_file.read())
 
@@ -102,10 +104,17 @@ class GitHubMigration:
             else github3.GitHubEnterprise(self.__url, token=self.__token)
 
         self.__username = self.__session.user().login
-        self.__repo = self.__session.repository(owner=self.__username, repository=self.__repo_name)
+
+        self.owner_name = self.__org_name if self.__org_name else self.__username
+        self.__repo = self.__session.repository(owner=self.owner_name, repository=self.__repo_name)
 
         if not self.__repo:
-            self.__repo = self.__session.create_repo(self.repo_name)
+            if not self.__org_name:
+                self.__repo = self.__session.create_repo(self.__repo_name)
+            else:
+                org = self.__session.organization(login=self.__org_name)
+                self.__repo = org.create_repo(self.__repo_name)
+                self.__repo_name = self.__repo.name
 
         self.header_basis['authorization'] += self.token
 
@@ -117,7 +126,7 @@ class GitHubMigration:
         self.issue_header['Accept'] = 'application/vnd.github.golden-comet-preview'
         self.repo_header['Accept'] = 'application/vnd.github.barred-rock-preview'
 
-        self.basis_repo_url = '{0}repos/{1}/{2}'.format(self.api_url, self.username, self.repo_name)
+        self.basis_repo_url = '{0}repos/{1}/{2}'.format(self.api_url, self.owner_name, self.repo_name)
         self.import_repo_url = self.basis_repo_url + '/import'
         self.import_issue_url = self.import_repo_url + '/issues'
 
@@ -174,6 +183,10 @@ class GitHubMigration:
     def cur_dir(self):
         return self.__cur_dir
 
+    @property
+    def org_name(self):
+        return self.__org_name
+
     def read_issue_json(self):
         files = []
 
@@ -182,7 +195,7 @@ class GitHubMigration:
 
         for fn in json_list:
             with open(fn) as json_text:
-                files.append(json_text.read().replace('{0}', self.url+'/'+self.username+'/'+self.repo_name))
+                files.append(json_text.read().replace('{0}', self.url+'/'+self.owner_name+'/'+self.repo_name))
 
         return files
 
@@ -194,16 +207,16 @@ class GitHubMigration:
         downloads = dict()
 
         for file_path in glob.glob(json_path):
-            download_id = get_fn(file_path, 0)
+            download_id = int(get_fn(file_path, 0))
             downloads[download_id] = dict()
 
             with open(file_path) as json_text:
                 downloads[download_id]['json'] = json.loads(json_text.read())
 
         for download_id in os.listdir(raw_path):
-            downloads[download_id]['raw'] = list()
+            downloads[int(download_id)]['raw'] = list()
 
-            for file_path in glob.glob(os.path.join(raw_path, download_id, '*.*')):
+            for file_path in glob.glob(os.path.join(raw_path, str(download_id), '*.*')):
                 file_name = get_fn(file_path)
                 ext = get_fn(file_path, 1)
 
@@ -213,13 +226,13 @@ class GitHubMigration:
                     content_type = 'multipart/form-data'
 
                 with open(file_path, 'rb') as raw_file:
-                    downloads[download_id]['raw'].append(dict(
+                    downloads[int(download_id)]['raw'].append(dict(
                         name=file_name,
                         raw=raw_file.read(),
                         content_type=content_type
                     ))
 
-        return downloads
+        return collections.OrderedDict(sorted(downloads.items()))
 
     def issues_migration_parallel(self):
         issue_split = list(chunks(self.issues, 30))
@@ -242,13 +255,15 @@ class GitHubMigration:
 
             if not ok_code.match(str(r.status_code)):
                 print(r.text)
+                return False
 
         self.upload_issue_attach()
         return True
 
     def upload_issue_attach(self):
         github = urlparse(self.url).netloc
-        push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(self.username, self.token, self.repo_name, github)
+        push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(self.owner_name, self.token,
+                                                                      self.repo_name, github)
 
         os.chdir(os.path.join(self.project_path, ISSUES_DIR, 'raw'))
 
@@ -280,16 +295,13 @@ class GitHubMigration:
         return True if status == 'complete' else False
 
     def downloads_migration(self):
-        print('Begin download migration...')
-        assert(self.repo.commit, '[ERROR} First, import your repository...')
-
-        for download_dict in tqdm(self.downloads.values()):
+        for download_id, download_dict in tqdm(self.downloads.items()):
             description = ast.literal_eval(download_dict['json'])
             files = download_dict['raw']
 
             assert(type(description) is dict)
-
-            tag_name = description['tag_name']
+            # Order by download_id-tag_name ...
+            tag_name = str(download_id) + '-' + description['tag_name']
             target_commitish = description['target_commitish']
             name = description['name']
             body = description['body']

@@ -1,0 +1,20 @@
+sudo: false
+language: python
+python:
+ - "2.7"
+ - "3.3"
+ - "3.4"
+ - "3.5"
+install:
+    - pip install -r requirements.txt
+script: tox
+deploy:
+  provider: pypi
+  user: maxtortime
+  password:
+    secure: MuN9Xi9DFPCZJE0+wM1PfiKTitRgTN9RjCsQN03meypLzPEuou8bN45AK4xsUHkKYOTo/P6WsvKcIV8AvKh+6lSnRi4QCWYa7Zf/pbCdNWSfEE2wW5t/N1u7NGDBrt5gXMQhCHLRlG3nwpQUAtOqAdWHNDel8wP8YopjzY8RYaI1fSql/XSIgt1ZlEyGthSGYJYdAQXSFee01l/AW9MQwJujRn9W+tCM4U9OfjTNWl9qW1nygwEbju2USU8WhgYqi+jMvXd0lyQx34km+lX1DBkx00gWAhE5ldoaPVH1FvuYJbCN8osL1o1gpM3/9PDszGnBq/RHftHqPuj2Nw0FdskHSe8HsLtuCBRG53MSyHIHoty7Q4jxH9e3vjGmkgec9mIdxTpmqCGn7yQDMFI0kyyK6K3MWluVBeaPfCbaVUJH+Zu9ybd22YbnZ4oGXFEl78EJpDRZ9v66SQ5nLYaEL3ZhD5irrdA/uMJaPCZzdImSpdLPv+5RN5GRgdATATBAKInlA1Znf+1dY/tlfmOPRDuTcRgRdcGNR/kU1PJaUvZyvPbpvBN3c789/OFhjEBc2wwhlss/f3Kbj00SV69lbe2cs6scs8nFLXrGUVHnnlFSq8QbWqGJ70C4zpNYDgS0hN7GIr0+A8vGndoRPWu73AqvCQQrBXeEUimMTIAY/Hg=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: naver/devcenter-open-project-migration
+    branch: master

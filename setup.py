@@ -15,13 +15,14 @@
    limitations under the License.
 """
 from setuptools import setup, find_packages
+from migration import __VERSION__
 
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
 setup(
     name='nforge_migration',
-    version='1.1.0.post1',
+    version=__VERSION__,
     description='Migrate nForge project to GitHub',
     author='Taehwan Kim',
     author_email='maxtortime@navercorp.com',

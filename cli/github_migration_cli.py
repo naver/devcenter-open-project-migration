@@ -19,6 +19,7 @@ import os
 import click
 from cli import CUR_DIR, DIRS
 from migration.github import GitHubMigration, InvalidTokenError
+from migration import __VERSION__
 
 
 @click.command()
@@ -28,6 +29,7 @@ from migration.github import GitHubMigration, InvalidTokenError
 @click.option('--org_name',  help='GitHub organization 이름')
 @click.option('--enterprise', help='GitHub 엔터프라이즈 저장소 여부', is_flag=False, default=False)
 @click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True, prompt=False, default=False)
+@click.version_option(version=__VERSION__)
 def github_migration_cli(dev_code, enterprise, name, token, project_name, org_name):
     """ GitHub migration management """
 

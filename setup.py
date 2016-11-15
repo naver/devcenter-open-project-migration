@@ -15,36 +15,36 @@
    limitations under the License.
 """
 from setuptools import setup, find_packages
+from migration import __VERSION__
+
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
 
 setup(
     name='nforge_migration',
-    version='1.1.0',
+    version=__VERSION__,
     description='Migrate nForge project to GitHub',
     author='Taehwan Kim',
     author_email='maxtortime@navercorp.com',
     py_modules=['npa', 'ghm'],
     packages=find_packages(exclude=['tests*']),
-    install_requires=[
-        'Click',
-        'BeautifulSoup4',
-        'lxml',
-        'tqdm',
-        'github3.py',
-        'requests',
-        'requests-toolbelt',
-        'grequests',
-        'future',
-        'pytest'
-    ],
+    url='https://github.com/naver/devcenter-open-project-migration',
+    install_requires=required,
     entry_points='''
         [console_scripts]
         npa=cli.nforge_parser_cli:nforge_parser_cli
         ghm=cli.github_migration_cli:github_migration_cli
     ''',
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Topic :: Utilities",
+        "Topic :: System :: Archiving :: Backup",
+        "Topic :: Text Processing :: Markup :: XML",
         "Environment :: Console",
+        "Natural Language :: Korean",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: MacOS",
+        "Operating System :: POSIX :: Linux",
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',

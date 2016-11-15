@@ -163,6 +163,15 @@
 - `Create Repository`를 만들어서 저장소를 생성합니다.
 - 아래 안내를 참고하셔서 저장소 Wiki 및 엑세스 토큰을 생성해주세요.
 
+### 소스 코드 저장소 로컬 백업 방법
+- 저장소가 git을 사용할 경우에는 http://dev.naver.com/projects/프로젝트이름/src 에 들어가면 보이는 `git clone` 명령어를 터미널에 입력하시면 됩니다.
+- 저장소가 svn을 사용할 경우에는 현재 svn이 설치되어 있을 경우 http://dev.naver.com/projects/프로젝트이름/src 에서 설명하는 것처럼 `svn checkout` 해주시면 되고 svn이 설치되어 있지 않을 경우 `git svn clone` 명령어를 사용해주세요.
+
+  ```sh
+  $ git svn clone --username 네이버아이디 https://dev.naver.com/svn/프로젝트이름
+  # 이후 프롬프트에서 네이버 비밀번호를 입력하시면 됩니다.
+  ```
+
 ### 소스 코드 import (코드 저장소가 있으면서, 코드들을 GitHub로 옮기려는 경우만 본 Step을 실행해 주세요.)
 - 코드 저장소를 마이그레이션하는 과정입니다.
 1. GitHub 저장소 import

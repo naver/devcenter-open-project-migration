@@ -1,15 +1,43 @@
-# nforge-migration
-
 [![Build Status](https://travis-ci.org/naver/devcenter-open-project-migration.svg?branch=master)](https://travis-ci.org/naver/devcenter-open-project-migration)
 [![PyPI](https://img.shields.io/pypi/dm/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
 [![PyPI](https://img.shields.io/pypi/v/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
 [![PyPI](https://img.shields.io/pypi/l/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
 [![PyPI](https://img.shields.io/pypi/pyversions/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
 
-네이버 개발자센터 오픈 프로젝트 백업 및 마이그레이션을 위한 Python 모듈입니다. 본 모듈은 [네이버 개발자센터의 오픈 프로젝트](http://dev.naver.com/projects) 의 마이그레이션을 위해 2가지 기능을 제공합니다.
+# 네이버 오픈 프로젝트 `이슈/게시판` 백업/마이그레이션 모듈 
 
-1. 네이버 오픈프로젝트 백업: 로컬PC에 개인의 오픈 프로젝트 데이터 (이슈/게시판/첨부 파일 포함)를 백업
+### * 본 모듈은 소스코드 백업 기능은 제공 안하며, 소스 코드만 로컬PC로 다운 받으실 분은 아래 `소스 코드 로컬 백업 방법` 가이드를 따르시길 바랍니다.
+
+네이버 오픈 프로젝트 이슈/게시판 백업 및 마이그레이션을 위한 Python 모듈입니다. 본 모듈은 [네이버 개발자센터의 오픈 프로젝트](http://dev.naver.com/projects) 의 마이그레이션을 위해 2가지 기능을 제공합니다. 
+
+1. 네이버 오픈프로젝트 이슈/게시판 백업: 로컬PC에 개인의 오픈 프로젝트 데이터 (이슈/게시판/첨부 파일 포함)를 백업
 2. Github로 마이그레이션: 로컬PC에 백업한 데이터를 GitHub의 프로젝트로 마이그레이션
+
+
+## 소스 코드만 백업 
+소스코드만 저장하실 분은 본 모듈 설치할 필요 없이 아래의 스텝을 따라해주시길 바랍니다. 
+
+### 소스 코드 로컬 백업 방법
+- 저장소가 git을 사용할 경우에는 http://dev.naver.com/projects/프로젝트이름/src 에 들어가면 보이는 `git clone` 명령어를 터미널에 입력하시면 됩니다.
+- 저장소가 svn을 사용할 경우에는 현재 svn이 설치되어 있을 경우 http://dev.naver.com/projects/프로젝트이름/src 에서 설명하는 것처럼 `svn checkout` 해주시면 되고 svn이 설치되어 있지 않을 경우 `git svn clone` 명령어를 사용해주세요.
+
+  ```sh
+  $ git svn clone --username 네이버아이디 https://dev.naver.com/svn/프로젝트이름
+  # 이후 프롬프트에서 비밀번호는 http://dev.naver.com/account/ 에 설정한 `코드저장소 비밀번호`를 입력하면 됩니다.
+  ```
+
+### 소스 코드 import (코드 저장소가 있으면서, 코드들을 GitHub로 옮기려는 경우만 본 Step을 실행해 주세요.)
+- 코드 저장소를 마이그레이션하는 과정입니다.
+1. GitHub 저장소 import
+   - 다음 링크로 이동 https://github.com/new/import/    
+2. GitHub 저장소 import 폼값 입력    
+   - `Your old repository’s clone URL` 에는 `오픈 프로젝트->코드` 탭에서 확인할 수 있는 `git clone` URL 혹은 `svn`의 URL을 입력하세요.
+   - `Your new repository details` 아래에 `Name`에 생성될 저장소 이름을 입력하세요.
+3. Import를 시작하게 되면 몇 초후 GitHub 화면에 아이디와 비밀번호를 입력하는 폼이 보입니다.
+    - 오픈 프로젝트가 공개 설정일 경우: 아이디/비밀번호 모두 `anonsvn` 입력
+    - 오픈 프로젝트가 비공개 설정일 경우: 네이버 아이디와 비밀번호
+4. 코드 저장소 마이그레이션이 끝나면 아래와 같은 메시지가 출력되고, GitHub에 등록하신 메일로 완료 안내가 갑니다.
+    -  `Importing complete! Your new repository your-id/your-project-name is ready.`
 
 ## 설치/실행 환경
 본 모듈은 CLI(Comamnd Line Interface) 형태의 모듈로서 Windows, Mac, Linux OS를 모두 지원합니다.
@@ -162,28 +190,6 @@
 - `Repository name` 에 저장소 이름을 입력하고 `Initialize this repository with a README` 체크박스에 체크합니다.
 - `Create Repository`를 만들어서 저장소를 생성합니다.
 - 아래 안내를 참고하셔서 저장소 Wiki 및 엑세스 토큰을 생성해주세요.
-
-### 소스 코드 저장소 로컬 백업 방법
-- 저장소가 git을 사용할 경우에는 http://dev.naver.com/projects/프로젝트이름/src 에 들어가면 보이는 `git clone` 명령어를 터미널에 입력하시면 됩니다.
-- 저장소가 svn을 사용할 경우에는 현재 svn이 설치되어 있을 경우 http://dev.naver.com/projects/프로젝트이름/src 에서 설명하는 것처럼 `svn checkout` 해주시면 되고 svn이 설치되어 있지 않을 경우 `git svn clone` 명령어를 사용해주세요.
-
-  ```sh
-  $ git svn clone --username 네이버아이디 https://dev.naver.com/svn/프로젝트이름
-  # 이후 프롬프트에서 네이버 비밀번호를 입력하시면 됩니다.
-  ```
-
-### 소스 코드 import (코드 저장소가 있으면서, 코드들을 GitHub로 옮기려는 경우만 본 Step을 실행해 주세요.)
-- 코드 저장소를 마이그레이션하는 과정입니다.
-1. GitHub 저장소 import
-   - 다음 링크로 이동 https://github.com/new/import/    
-2. GitHub 저장소 import 폼값 입력    
-   - `Your old repository’s clone URL` 에는 `오픈 프로젝트->코드` 탭에서 확인할 수 있는 `git clone` URL 혹은 `svn`의 URL을 입력하세요.
-   - `Your new repository details` 아래에 `Name`에 생성될 저장소 이름을 입력하세요.
-3. Import를 시작하게 되면 몇 초후 GitHub 화면에 아이디와 비밀번호를 입력하는 폼이 보입니다.
-    - 오픈 프로젝트가 공개 설정일 경우: 아이디/비밀번호 모두 `anonsvn` 입력
-    - 오픈 프로젝트가 비공개 설정일 경우: 네이버 아이디와 비밀번호
-4. 코드 저장소 마이그레이션이 끝나면 아래와 같은 메시지가 출력되고, GitHub에 등록하신 메일로 완료 안내가 갑니다.
-    -  `Importing complete! Your new repository your-id/your-project-name is ready.`
 
 ### 저장소 Wiki 생성 (반드시 생성해주세요!!)
 위키를 생성하는 이유는 이슈,게시판,댓글의 첨부파일을 업로드하기 위한 것입니다.

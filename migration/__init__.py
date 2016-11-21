@@ -14,15 +14,13 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-
-__VERSION__ = '1.1.0.post1'
-
 import re
 
 from .helper import set_encoding
 
 set_encoding()
 
+__version__ = '1.1.0.post2'
 WAIT_TIME = 5
 ASSET_DIR = 'files'
 CODE_INFO_FILE = 'code_info.json'

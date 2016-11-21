@@ -24,7 +24,8 @@ class TestGitHub(unittest.TestCase):
 
     def testInvalidPath(self):
         with self.assertRaises(Exception):
-            GitHubMigration(token='', enterprise=False, project_path='', repo_name='test')
+            GitHubMigration(token='', enterprise=False, project_path='',
+                            repo_name='test')
 
 if __name__ == '__main__':
     unittest.main()

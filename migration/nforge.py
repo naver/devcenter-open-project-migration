@@ -15,18 +15,19 @@
    limitations under the License.
 """
 import hashlib
+import json
 import logging
 import mimetypes
 import os
 import time
+from builtins import str, open
 
 import requests
-import json
-from builtins import str, open
-from cli import DIRS
 from future.moves.urllib.parse import urlparse, urljoin
-from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, ISSUES_DIR, ISSUE_ATTACH_DIR
-from migration.exception import InvalidCookieError, InvalidProjectError, NoSrcError
+from migration import CODE_INFO_FILE, ok_code, DOWNLOADS_DIR, \
+    ISSUES_DIR, ISSUE_ATTACH_DIR
+from migration.exception import InvalidCookieError, InvalidProjectError, \
+    NoSrcError
 from migration.helper import making_soup, make_dirs, get_fn
 from tqdm import tqdm
 
@@ -46,7 +47,8 @@ class Milestone:
                 title=self.features,
                 state=status,
                 description=self.features,
-                due_on=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.localtime(int(self.due_date)))
+                due_on=time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                     time.localtime(int(self.due_date)))
             )
         )
 
@@ -83,11 +85,13 @@ class Nforge:
 
                 for cookie in cookie_list:
                     cookie_split = cookie.split('=')
-                    self.cookies[cookie_split[0]] = cookie_split[1].replace('\n', '')
+                    self.cookies[cookie_split[0]] = \
+                        cookie_split[1].replace('\n', '')
             except EnvironmentError:
                 raise InvalidCookieError(self.cookies)
 
-        request_main_html = requests.get(self.project_url, cookies=self.cookies)
+        request_main_html = requests.get(self.project_url,
+                                         cookies=self.cookies)
 
         self.project_main_html = request_main_html.content
         self.project_main_soup = making_soup(self.project_main_html, 'html')
@@ -99,7 +103,8 @@ class Nforge:
         self.path = os.path.join(Nforge.__name__, project_type, project_name)
         self.issues_path = os.path.join(self.path, ISSUES_DIR)
         self.downloads_path = os.path.join(self.path, DOWNLOADS_DIR)
-        self.attach_path = os.path.join(self.issues_path, 'raw', ISSUE_ATTACH_DIR)
+        self.attach_path = os.path.join(self.issues_path, 'raw',
+                                        ISSUE_ATTACH_DIR)
 
         self.paths = [self.issues_path, self.downloads_path]
 
@@ -117,7 +122,8 @@ class Nforge:
                 os.mkdir(download_data)
 
         # get version control system information
-        src_request = requests.get(self.project_url + '/src', cookies=self.cookies)
+        src_request = requests.get(self.project_url + '/src',
+                                   cookies=self.cookies)
         src_soup = making_soup(src_request.content, 'html')
         src_title = src_soup.find('title').get_text()
 
@@ -180,7 +186,9 @@ class Nforge:
             vcs_password = 'nobody'
             vcs = 'git'
             # git must use https protocol
-            vcs_url = 'https://{3}:{3}@{2}/{0}/{1}.{0}'.format(vcs, self.name, url, vcs_username)
+            vcs_url = 'https://{3}:{3}@{2}/{0}/{1}.{0}'.format(vcs, self.name,
+                                                               url,
+                                                               vcs_username)
         else:
             vcs_username = 'anonsvn'
             vcs_password = 'anonsvn'
@@ -194,7 +202,8 @@ class Nforge:
             vcs_password=vcs_password
         ))
 
-        with open(os.path.join(self.path, CODE_INFO_FILE), 'w', encoding='utf-8') as code_info_json:
+        with open(os.path.join(self.path, CODE_INFO_FILE), 'w',
+                  encoding='utf-8') as code_info_json:
             code_info_json.write(str(code_info))
 
         return code_info
@@ -206,7 +215,9 @@ class Nforge:
         if not os.path.exists(attach_file_path):
             os.mkdir(attach_file_path)
 
-        project_news_item = self.project_main_soup.find('ul', class_='tab-small').findAll('ul')
+        project_news_item = self.project_main_soup.find('ul',
+                                                        class_='tab-small')\
+            .findAll('ul')
         wiki_pages = dict()
 
         for a_tag in project_news_item[2].findAll('a'):
@@ -217,24 +228,30 @@ class Nforge:
             # Except error for private wiki
             # Private wiki cannot get text area tag
             try:
-                wiki_content = making_soup(wiki_request, 'html').textarea.get_text()
+                wiki_content = making_soup(wiki_request,
+                                           'html').textarea.get_text()
             except AttributeError:
-                wiki_request = requests.get(self.url + a_tag['href'], cookies=self.cookies).content
-                wiki_content = making_soup(wiki_request, 'html').find('div', id='mycontent')
+                wiki_request = requests.get(self.url + a_tag['href'],
+                                            cookies=self.cookies).content
+                wiki_content = making_soup(wiki_request,
+                                           'html').find('div', id='mycontent')
 
             wiki_pages[doc_name] = str(wiki_content)
 
-            with open(os.path.join(wiki_path, doc_name) + '.md', 'w', encoding='utf-8') as wiki_doc:
+            with open(os.path.join(wiki_path, doc_name) + '.md', 'w',
+                      encoding='utf-8') as wiki_doc:
                 wiki_doc.write(str(wiki_content))
 
         return wiki_pages
 
     def developers(self):
         class_name = 'developer_info_list'
-        dev_info_list = self.project_main_soup.find('div', class_name).ul.find_all('li')
+        dev_info_list = self.project_main_soup.find('div', class_name).ul.\
+            find_all('li')
 
         developers = []
-        with open(os.path.join(self.path, 'developers.txt'), 'w') as developer_file:
+        with open(os.path.join(self.path,
+                               'developers.txt'), 'w') as developer_file:
             for li in dev_info_list:
                 developer_name = li.a.get_text().replace(' ', '')
                 developers.append(developer_name)
@@ -244,7 +261,8 @@ class Nforge:
 
     def milestones(self):
         milestone_url = self.project_url + '/milestone.xml'
-        milestone_xml = requests.get(milestone_url, cookies=self.cookies).content
+        milestone_xml = requests.get(milestone_url,
+                                     cookies=self.cookies).content
         xml_soup = making_soup(milestone_xml, 'xml')
         milestones_soup = xml_soup.findAll('milestone')
         milestones_path = os.path.join(self.path, 'milestones')
@@ -260,7 +278,8 @@ class Nforge:
                 ms_json = str(ms)
                 milestones.append(ms_json)
 
-                with open(os.path.join(milestones_path, ms.id) + '.json', 'w') as ms_file:
+                with open(os.path.join(milestones_path, ms.id) + '.json',
+                          'w') as ms_file:
                     ms_file.write(ms_json)
 
         return milestones
@@ -272,32 +291,40 @@ class Nforge:
 
             get_board_request = requests.get(url, cookies=self.cookies)
             parsed_board = making_soup(get_board_request.content, 'xml')
-            doc_ids = [id_tag.get_text() for id_tag in parsed_board.findAll(self.ID_TAGS[is_download])]
+            doc_ids = [id_tag.get_text()
+                       for id_tag in parsed_board.findAll
+                       (self.ID_TAGS[is_download])]
 
             progress_bar = tqdm(doc_ids)
 
-            xml_path = os.path.join(self.paths[is_download], self.SUB_DIRS[1], board if not is_download else '')
+            xml_path = os.path.join(self.paths[is_download], self.SUB_DIRS[1],
+                                    board if not is_download else '')
 
             if not os.path.exists(xml_path) and not is_download:
                 os.mkdir(xml_path)
 
             for doc_id in progress_bar:
-                progress_bar.set_description('Now making {0}.xml and {0}.json of {1}'.format(doc_id, board))
+                progress_bar.set_description('Now making {0}.xml and '
+                                             '{0}.json of {1}'.format(doc_id,
+                                                                      board))
 
                 fn = doc_id + '.xml'
 
-                doc_req_url = '{0}/{1}/{2}.xml'.format(self.project_url, board, doc_id)
+                doc_req_url = '{0}/{1}/{2}.xml'.format(self.project_url, board,
+                                                       doc_id)
                 doc_requests = requests.get(doc_req_url, cookies=self.cookies)
 
                 if not ok_code.match(str(doc_requests.status_code)):
-                    logging.error('{0} HAS REQUEST ERROR {1}'.format(doc_id, doc_requests.status_code))
+                    logging.error('{0} HAS REQUEST ERROR {1}'.
+                                  format(doc_id, doc_requests.status_code))
                     continue
 
                 # Precaution of xml encoding error
                 xml_bytes = doc_requests.content.decode('utf-8', 'replace')
                 parsed_xml = xml_bytes.replace('&#13;', '\n')
 
-                with open(os.path.join(xml_path, fn), 'w', encoding='utf-8') as xml_file:
+                with open(os.path.join(xml_path, fn), 'w',
+                          encoding='utf-8') as xml_file:
                     xml_file.write(parsed_xml)
 
                 soup = making_soup(parsed_xml, 'xml')
@@ -318,16 +345,21 @@ class Nforge:
         attachments_tag = issue.find('attachments')
 
         issue_id = '0' if not issue_id_tag else issue_id_tag.get_text()
-        author = 'No author' if not author_tag else author_tag.get_text().replace(' ', '')
-        assignee = 'No assignee' if not assignee_tag else assignee_tag.get_text().replace(' ', '')
+        author = 'No author' if not author_tag \
+            else author_tag.get_text().replace(' ', '')
+        assignee = 'No assignee' if not assignee_tag \
+            else assignee_tag.get_text().replace(' ', '')
         title = 'No title' if not title_tag else title_tag.get_text()
         body = 'No body' if not body_tag else body_tag.get_text()
         open_date_str = '0' if not open_date_tag else open_date_tag.get_text()
         close_date = '0' if not close_date_tag else close_date_tag.get_text()
 
-        open_date = time.strftime(self.print_type, time.localtime(int(open_date_str)))
-        create_date = time.strftime(self.github_type, time.localtime(int(open_date_str)))
-        closed_date = time.strftime(self.github_type, time.localtime(int(close_date)))
+        open_date = time.strftime(self.print_type,
+                                  time.localtime(int(open_date_str)))
+        create_date = time.strftime(self.github_type,
+                                    time.localtime(int(open_date_str)))
+        closed_date = time.strftime(self.github_type,
+                                    time.localtime(int(close_date)))
 
         closed = False if close_date == '0' else True
 
@@ -336,14 +368,13 @@ class Nforge:
 
         comments = issue.find('comments')
 
-        assignee_text = 'and assigned to **{0}**'.format(assignee) if assignee != 'Nobody' else ''
-        description = "This {0} created by **{1}** {2} | {3}\n\n------\n\n{4}{5}".format(
-            doc_type,
-            author,
-            assignee_text,
-            open_date,
-            body,
-            attachments_link)
+        assignee_text = 'and assigned to **{0}**'.format(assignee) \
+            if assignee != 'Nobody' else ''
+        description = "This {0} created by **{1}** {2} | " \
+                      "{3}\n\n------\n\n{4}{5}".format(doc_type, author,
+                                                       assignee_text,
+                                                       open_date, body,
+                                                       attachments_link)
 
         comment_list = self.make_comments(comments)
 
@@ -360,7 +391,8 @@ class Nforge:
                 comments=comment_list
             ))
 
-        with open(os.path.join(self.issues_path, 'json', issue_id + '.json'), 'w') as json_file:
+        with open(os.path.join(self.issues_path, 'json',
+                               issue_id + '.json'), 'w') as json_file:
             json_file.write(str(issue_json))
 
     def make_download(self, release_id, soup):
@@ -386,7 +418,8 @@ class Nforge:
             draft=False
         )
 
-        with open(os.path.join(self.downloads_path, 'json', release_id + '.json'), 'w') as json_file:
+        with open(os.path.join(self.downloads_path, 'json',
+                               release_id + '.json'), 'w') as json_file:
             json.dump(str(download_json), json_file, ensure_ascii=False)
 
         if files_tag:
@@ -400,8 +433,10 @@ class Nforge:
                 else:
                     continue
 
-                file_down_url = '{0}/frs/download.php/{1}/{2}'.format(self.url, fid, fn)
-                file_raw = requests.get(file_down_url, stream=True, cookies=self.cookies).content
+                file_down_url = '{0}/frs/download.php/{1}/{2}'\
+                    .format(self.url, fid, fn)
+                file_raw = requests.get(file_down_url, stream=True,
+                                        cookies=self.cookies).content
 
                 with open(os.path.join(raw_file_path, fn), 'wb') as raw_file:
                     raw_file.write(file_raw)
@@ -433,7 +468,8 @@ class Nforge:
                 down_path = os.path.join(self.attach_path, content_id, fid)
 
                 if not os.path.exists(down_path):
-                    downloaded = requests.get(down_url, stream=True, cookies=self.cookies)
+                    downloaded = requests.get(down_url, stream=True,
+                                              cookies=self.cookies)
 
                     if not os.path.exists(down_path):
                         os.makedirs(down_path)
@@ -447,9 +483,11 @@ class Nforge:
                 mime_type = mimetypes.guess_type(fn)[0]
 
                 if mime_type and mime_type.split('/')[0] == 'image':
-                    attach_markdown += '* {0}\n\n\t![{0}]({1})\n\n'.format(fn, github_link)
+                    attach_markdown += '* {0}\n\n\t![{0}]({1})\n\n'.\
+                        format(fn, github_link)
                 else:
-                    attach_markdown += '* [{0}]({1})\n\n'.format(fn, github_link)
+                    attach_markdown += '* [{0}]({1})\n\n'.format(fn,
+                                                                 github_link)
 
         return attach_markdown
 
@@ -465,18 +503,25 @@ class Nforge:
                 date_tag = comment.find('pubDate')
 
                 id_ = None if not id_tag else id_tag.get_text()
-                body = 'No description' if not description_tag else description_tag.get_text()
-                author = 'No author' if not author_tag else author_tag.get_text()
+                body = 'No description' if not description_tag \
+                    else description_tag.get_text()
+                author = 'No author' if not author_tag \
+                    else author_tag.get_text()
                 date = '0' if not date_tag else date_tag.get_text()
-                items = attachments_tag.findAll('item') if attachments_tag else None
+                items = attachments_tag.findAll('item') \
+                    if attachments_tag else None
 
-                print_time = time.strftime(self.print_type, time.localtime(int(date)))
-                github_time = time.strftime(self.github_type, time.localtime(int(date)))
+                print_time = time.strftime(self.print_type,
+                                           time.localtime(int(date)))
+                github_time = time.strftime(self.github_type,
+                                            time.localtime(int(date)))
 
                 attach_links = self.attach_links(items, id_)
 
-                c_body = "This comment created by **{0}** | {1}\n\n------\n\n{2}{3}".format(author, print_time, body,
-                                                                                            attach_links)
+                c_body = "This comment created by " \
+                         "**{0}** | {1}" \
+                         "\n\n------\n\n{2}{3}".\
+                    format(author, print_time, body, attach_links)
 
                 result.append({
                     "created_at": github_time,

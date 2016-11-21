@@ -17,27 +17,31 @@
 import hashlib
 import unittest
 
-from migration.exception import NoSrcError
 from migration.nforge import InvalidProjectError
 from migration.nforge import Nforge
 
 
 class TestNforge(unittest.TestCase):
     valid_pr_name = 'd2coding'
-    test_d2coding = Nforge(project_name=valid_pr_name, dev_code=False, private=False)
+    test_d2coding = Nforge(project_name=valid_pr_name, dev_code=False,
+                           private=False)
     # sha1 hash file
-    d2coding_wiki_docs = {'FrontPage': 'fc1ede112bc7f117dc5d4f89db6478a2d13c06a8',
-                          'OpenFontLicense': 'e4575441fb9b826e243d7a76622686d7923835cb'}
+    d2coding_wiki_docs = {'FrontPage': 'fc1ede112bc7f117dc5d'
+                                       '4f89db6478a2d13c06a8',
+                          'OpenFontLicense': 'e4575441fb9b826'
+                                             'e243d7a76622686d7923835cb'}
     invalid_name = '!245sad'
 
     def test_invalid_project_error(self):
         with self.assertRaises(InvalidProjectError):
-            invalid_pr = Nforge(project_name=self.invalid_name, dev_code=False, private=False)
+            invalid_pr = Nforge(project_name=self.invalid_name, dev_code=False,
+                                private=False)
             self.assertIsNone(invalid_pr)
 
         self.assertIsInstance(self.test_d2coding, cls=Nforge)
 
-        d2coding = Nforge(project_name=self.valid_pr_name, dev_code=False, private=False)
+        d2coding = Nforge(project_name=self.valid_pr_name, dev_code=False,
+                          private=False)
         self.assertIsInstance(d2coding, cls=Nforge)
 
     def test_wiki(self):
@@ -45,7 +49,8 @@ class TestNforge(unittest.TestCase):
 
         for name, doc in self.d2coding_wiki_docs.items():
             wiki_doc = wiki[name]
-            self.assertEqual(hashlib.sha1(wiki_doc.encode('utf-8')).hexdigest(), doc)
+            self.assertEqual(hashlib.sha1(wiki_doc.encode('utf-8')).
+                             hexdigest(), doc)
 
 
 if __name__ == '__main__':

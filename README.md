@@ -1,21 +1,20 @@
+# 네이버 오픈 프로젝트 **이슈/게시판** 백업/마이그레이션 모듈
+> 본 모듈은 소스코드 백업 기능은 제공하지 않으며, 소스 코드만 로컬PC로 다운 받으실 분은 아래 [소스 코드 로컬 백업 방법](#소스 코드 로컬 백업 방법) 가이드를 따르시길 바랍니다.
+
 [![Build Status](https://travis-ci.org/naver/devcenter-open-project-migration.svg?branch=master)](https://travis-ci.org/naver/devcenter-open-project-migration)
 [![PyPI](https://img.shields.io/pypi/dm/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
 [![PyPI](https://img.shields.io/pypi/v/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
 [![PyPI](https://img.shields.io/pypi/l/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
 [![PyPI](https://img.shields.io/pypi/pyversions/nforge-migration.svg)](https://pypi.python.org/pypi/nforge-migration)
 
-# 네이버 오픈 프로젝트 `이슈/게시판` 백업/마이그레이션 모듈 
-
-### * 본 모듈은 소스코드 백업 기능은 제공 안하며, 소스 코드만 로컬PC로 다운 받으실 분은 아래 `소스 코드 로컬 백업 방법` 가이드를 따르시길 바랍니다.
-
-네이버 오픈 프로젝트 이슈/게시판 백업 및 마이그레이션을 위한 Python 모듈입니다. 본 모듈은 [네이버 개발자센터의 오픈 프로젝트](http://dev.naver.com/projects) 의 마이그레이션을 위해 2가지 기능을 제공합니다. 
+네이버 오픈 프로젝트 이슈/게시판 백업 및 마이그레이션을 위한 Python 모듈입니다. 본 모듈은 [네이버 개발자센터의 오픈 프로젝트](http://dev.naver.com/projects) 의 마이그레이션을 위해 2가지 기능을 제공합니다.
 
 1. 네이버 오픈프로젝트 이슈/게시판 백업: 로컬PC에 개인의 오픈 프로젝트 데이터 (이슈/게시판/첨부 파일 포함)를 백업
 2. Github로 마이그레이션: 로컬PC에 백업한 데이터를 GitHub의 프로젝트로 마이그레이션
 
 
-## 소스 코드만 백업 
-소스코드만 저장하실 분은 본 모듈 설치할 필요 없이 아래의 스텝을 따라해주시길 바랍니다. 
+## 소스 코드만 백업
+소스코드만 저장하실 분은 본 모듈 설치할 필요 없이 아래의 스텝을 따라해주시길 바랍니다.
 
 ### 소스 코드 로컬 백업 방법
 - 저장소가 git을 사용할 경우에는 http://dev.naver.com/projects/프로젝트이름/src 에 들어가면 보이는 `git clone` 명령어를 터미널에 입력하시면 됩니다.
@@ -94,7 +93,7 @@
    - http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml 이 곳에서 운영체제와 파이썬 버전에 맞는 파일을  위에서 생성하신 작업 폴더에 다운로드해주세요.
    - 32bit 이신 경우 아래 링크에서 다운로드하시면 됩니다.
      - [Python 2.7](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp27-cp27m-win32.whl)
-     - [Python 3.4](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp34-cp34m-win32.whl) 
+     - [Python 3.4](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp34-cp34m-win32.whl)
      - [Python 3.5](http://www.lfd.uci.edu/~gohlke/pythonlibs/dp2ng7en/lxml-3.6.4-cp35-cp35m-win32.whl)
 
 2. Lxml (XML 파서) 설치
@@ -148,7 +147,7 @@
 * `npa` 명령어를 아래의 안내와 같이 터미널에 입력해주세요.
     * 공개 프로젝트: `$ npa --name 프로젝트이름`
     * 비공개 프로젝트: `$ npa --name 프로젝트이름 --private`
-    
+
 > **중요!!** `프로젝트이름`은 만약 프로젝트의 URL이 `http://dev.naver.com/projects/d2coding/` 이라면 `d2coding`이라고 입력해주시면 됩니다.
 
 * 자동으로 프로젝트들이 다운로드되고 아무 메시지 없이 끝났다면 성공한 것입니다.
@@ -224,7 +223,7 @@
 > 중요 !! Git 설치 후 최초 설정을 했는지 확인해주세요. 하지 않았다면 첨부파일이 업로드 되지 않습니다. 아래 명령어를 입력해주세요. [상세 설명](https://git-scm.com/book/ko/v2/%EC%8B%9C%EC%9E%91%ED%95%98%EA%B8%B0-Git-%EC%B5%9C%EC%B4%88-%EC%84%A4%EC%A0%95)
   - 자신의 이름 입력 `$ git config --global user.name "John Doe"`
   - 자신의 이메일 입력 `$ git config --global user.email johndoe@example.com`
-  
+
 - 아래의 명령어를 입력해서 이슈 및 게시판 마이그레이션을 시작합니다.
    - `$ ghm --name GitHub저장소이름 --project_name 프로젝트이름`
    - `프로젝트이름` 은 위에서 다운로드한 프로젝트 이름과 일치해야 합니다.

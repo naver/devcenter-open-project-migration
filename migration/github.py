@@ -104,8 +104,10 @@ class GitHubMigration:
 
         self.__username = self.__session.user().login
 
-        self.owner_name = self.__org_name if self.__org_name else self.__username
-        self.__repo = self.__session.repository(owner=self.owner_name, repository=self.__repo_name)
+        self.owner_name = self.__org_name \
+            if self.__org_name else self.__username
+        self.__repo = self.__session.repository(owner=self.owner_name,
+                                                repository=self.__repo_name)
 
         if not self.__repo:
             if not self.__org_name:
@@ -122,10 +124,14 @@ class GitHubMigration:
         self.repo_header = self.header_basis.copy()
 
         self.basic_header['Accept'] = 'application/vnd.github.v3+json'
-        self.issue_header['Accept'] = 'application/vnd.github.golden-comet-preview'
-        self.repo_header['Accept'] = 'application/vnd.github.barred-rock-preview'
+        self.issue_header['Accept'] = 'application/vnd.github.golden-' \
+                                      'comet-preview'
+        self.repo_header['Accept'] = 'application/vnd.github.barred-' \
+                                     'rock-preview'
 
-        self.basis_repo_url = '{0}repos/{1}/{2}'.format(self.api_url, self.owner_name, self.repo_name)
+        self.basis_repo_url = '{0}repos/{1}/{2}'.format(self.api_url,
+                                                        self.owner_name,
+                                                        self.repo_name)
         self.import_repo_url = self.basis_repo_url + '/import'
         self.import_issue_url = self.import_repo_url + '/issues'
 
@@ -194,7 +200,9 @@ class GitHubMigration:
 
         for fn in json_list:
             with open(fn) as json_text:
-                files.append(json_text.read().replace('{0}', self.url+'/'+self.owner_name+'/'+self.repo_name))
+                files.append(json_text.read().replace('{0}', self.url + '/' +
+                                                      self.owner_name + '/' +
+                                                      self.repo_name))
 
         return files
 
@@ -215,7 +223,8 @@ class GitHubMigration:
         for download_id in os.listdir(raw_path):
             downloads[int(download_id)]['raw'] = list()
 
-            for file_path in glob.glob(os.path.join(raw_path, str(download_id), '*.*')):
+            for file_path in glob.glob(os.path.join(raw_path, str(download_id),
+                                                    '*.*')):
                 file_name = get_fn(file_path)
                 ext = get_fn(file_path, 1)
 
@@ -235,7 +244,8 @@ class GitHubMigration:
 
     def issues_migration(self):
         for issue in tqdm(self.issues):
-            r = requests.post(self.import_issue_url, data=issue, headers=self.issue_header)
+            r = requests.post(self.import_issue_url, data=issue,
+                              headers=self.issue_header)
 
             if not ok_code.match(str(r.status_code)):
                 print(r.text)
@@ -246,8 +256,8 @@ class GitHubMigration:
 
     def upload_issue_attach(self):
         github = urlparse(self.url).netloc
-        push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.format(self.owner_name, self.token,
-                                                                      self.repo_name, github)
+        push_wiki_git = 'https://{0}:{1}@{3}/{0}/{2}.wiki.git'.\
+            format(self.owner_name, self.token, self.repo_name, github)
 
         os.chdir(os.path.join(self.project_path, ISSUES_DIR, 'raw'))
 
@@ -266,14 +276,17 @@ class GitHubMigration:
         os.chdir(self.cur_dir)
 
     def repo_migration(self):
-        with open(os.path.join(self.project_path, CODE_INFO_FILE)) as code_info:
-            r = requests.request("PUT", self.import_repo_url, data=code_info.read().encode('utf-8'),
+        with open(os.path.join(self.project_path, CODE_INFO_FILE)) \
+                as code_info:
+            r = requests.request("PUT", self.import_repo_url,
+                                 data=code_info.read().encode('utf-8'),
                                  headers=self.repo_header)
 
         return True if ok_code.match(str(r.status_code)) else False
 
     def check_repo_migration(self):
-        import_confirm = requests.request('GET', self.import_repo_url, headers=self.repo_header)
+        import_confirm = requests.request('GET', self.import_repo_url,
+                                          headers=self.repo_header)
         status = import_confirm.json()['status']
 
         return True if status == 'complete' else False
@@ -283,7 +296,7 @@ class GitHubMigration:
             description = ast.literal_eval(download_dict['json'])
             files = download_dict['raw']
 
-            assert(type(description) is dict)
+            assert (type(description) is dict)
             # Order by download_id-tag_name ...
             tag_name = str(download_id) + '-' + description['tag_name']
             target_commitish = description['target_commitish']
@@ -293,10 +306,13 @@ class GitHubMigration:
             prerelease = description['prerelease']
 
             try:
-                release = self.repo.create_release(tag_name, target_commitish, name, body, draft, prerelease)
+                release = self.repo.create_release(tag_name, target_commitish,
+                                                   name, body, draft,
+                                                   prerelease)
 
                 for file in files:
-                    release.upload_asset('multipart/form-data', file['name'], file['raw'])
+                    release.upload_asset('multipart/form-data',
+                                         file['name'], file['raw'])
 
             except GitHubError as e:
                 print(e)

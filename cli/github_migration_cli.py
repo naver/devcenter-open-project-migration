@@ -19,18 +19,21 @@ import os
 import click
 from cli import CUR_DIR, DIRS
 from migration.github import GitHubMigration, InvalidTokenError
-from migration import __VERSION__
+from migration import __version__
 
 
 @click.command()
 @click.option('--token', help='토큰 직접 입력')
 @click.option('--project_name', prompt=True, help='오픈프로젝트 이름')
 @click.option('--name', prompt=True, help='GitHub 저장소 이름')
-@click.option('--org_name',  help='GitHub organization 이름')
-@click.option('--enterprise', help='GitHub 엔터프라이즈 저장소 여부', is_flag=False, default=False)
-@click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True, prompt=False, default=False)
-@click.version_option(version=__VERSION__)
-def github_migration_cli(dev_code, enterprise, name, token, project_name, org_name):
+@click.option('--org_name', help='GitHub organization 이름')
+@click.option('--enterprise', help='GitHub 엔터프라이즈 저장소 여부',
+              is_flag=False, default=False)
+@click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True,
+              prompt=False, default=False)
+@click.version_option(version=__version__)
+def github_migration_cli(dev_code, enterprise, name, token, project_name,
+                         org_name):
     """ GitHub migration management """
 
     repo_name = name
@@ -45,13 +48,15 @@ def github_migration_cli(dev_code, enterprise, name, token, project_name, org_na
     project_path = os.path.join(nforge_path, project_name)
 
     try:
-        ghm = GitHubMigration(token=token, enterprise=enterprise, repo_name=repo_name,
+        ghm = GitHubMigration(token=token, enterprise=enterprise,
+                              repo_name=repo_name,
                               project_path=project_path, org_name=org_name)
     except InvalidTokenError as e:
         click.echo(click.style(e.token + ' is a invalid token!!', fg='red'))
         exit(-1)
     except FileNotFoundError:
-        click.echo(click.style('Please input valid project name (You inputted "{0}")'.format(project_name), fg='red'))
+        click.echo(click.style('Please input valid project name (You inputted '
+                               '"{0}")'.format(project_name), fg='red'))
     else:
         click.echo(ghm.token + click.style(' is valid token', fg='blue'))
 

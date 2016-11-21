@@ -28,7 +28,8 @@ def get_fn(path, mode=None):
     """
     :param path: Path of file
     :param mode: See below
-    :return: mode: None -> Full file name , mode:0 -> Only file name mode: 1 -> Extension
+    :return: mode: None -> Full file name , mode:0 -> Only file name mode:
+    1 -> Extension
     """
     if mode is None:
         return os.path.basename(path)

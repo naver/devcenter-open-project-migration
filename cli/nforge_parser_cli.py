@@ -18,14 +18,16 @@
 import click
 
 from migration.nforge import Nforge
-from migration import __VERSION__
+from migration import __version__
 
 
 @click.command()
 @click.option('--name', type=str, help='오픈 프로젝트 이름', prompt=True)
-@click.option('--private', help='오픈 프로젝트 비공개 저장소 여부', is_flag=True, default=False)
-@click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True, default=False)
-@click.version_option(version=__VERSION__)
+@click.option('--private', help='오픈 프로젝트 비공개 저장소 여부',
+              is_flag=True, default=False)
+@click.option('--dev_code', help='DevCode 프로젝트인지', is_flag=True,
+              default=False)
+@click.version_option(version=__version__)
 def nforge_parser_cli(name, dev_code, private):
     """
     Command line interface for parsing Nforge project.

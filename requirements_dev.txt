@@ -8,4 +8,4 @@ requests-toolbelt==0.7.0
 tqdm==4.9.0
 tox==2.4.1
 tox-travis==0.6
-pytest==3.0.3
+pytest==3.0.4

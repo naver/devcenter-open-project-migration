@@ -3,6 +3,6 @@ click==6.6
 future==0.16.0
 github3.py==0.9.6
 lxml==3.6.4
-requests==2.11.1
+requests==2.12.1
 requests-toolbelt==0.7.0
 tqdm==4.9.0

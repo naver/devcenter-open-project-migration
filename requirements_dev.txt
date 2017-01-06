@@ -1,5 +1,5 @@
 beautifulsoup4==4.5.1
-click==6.6
+click==6.7
 future==0.16.0
 github3.py==0.9.6
 lxml==3.6.4
